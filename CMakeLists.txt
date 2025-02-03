@@ -15,6 +15,7 @@ find_package(Python REQUIRED COMPONENTS Interpreter Development)
 find_package(nanobind CONFIG REQUIRED HINTS /usr/local/nanobind/cmake)
 find_package(single-task-runner REQUIRED)
 find_package(double-buffer-swapper REQUIRED)
+find_package(flat-type REQUIRED)
 
 # Silence warnings in nanobind headers by marking as SYSTEM include
 include_directories(SYSTEM /usr/local/nanobind/include)
@@ -60,11 +61,12 @@ install(TARGETS Share_memory_image_producer_consumer_nb DESTINATION lib/python${
 
 
 # # -------------------------------
-# # Test executable
-# add_executable(flat_shm_test flat_shm_test.cpp)
-# target_link_libraries(flat_shm_test PRIVATE fmt)
-# set_common_options(flat_shm_test)
-# enable_sanitizers(flat_shm_test)
-# install(TARGETS flat_shm_test DESTINATION bin)
+# Test executable
+add_executable(flat_shm_test test/flat_shm_test.cpp)
+target_include_directories(flat_shm_test PRIVATE include)
+target_link_libraries(flat_shm_test PRIVATE fmt flat-type::flat-type)
+set_debug_options(flat_shm_test)
+enable_sanitizers(flat_shm_test)
+install(TARGETS flat_shm_test DESTINATION bin)
 
 

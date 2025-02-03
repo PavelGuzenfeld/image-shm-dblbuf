@@ -1,6 +1,6 @@
 #pragma once
-#include "flat_shm_impl.h"
-#include "flat_type.hpp"
+#include "impl/flat_shm.h"
+#include "flat-type/flat.hpp"
 
 namespace flat_shm
 {
@@ -10,7 +10,7 @@ namespace flat_shm
         static constexpr std::expected<SharedMemory<FLAT_TYPE>, std::string> create(std::string const &shm_name) noexcept
         {
             auto const size = sizeof(FLAT_TYPE);
-            auto impl = flat_shm_impl::create(shm_name, size);
+            auto impl = shm::impl::create(shm_name, size);
             if (impl.has_value())
             {
                 return SharedMemory<FLAT_TYPE>{std::move(impl.value())};
@@ -30,7 +30,7 @@ namespace flat_shm
         {
             if (this != &other)
             {
-                flat_shm_impl::destroy(impl_);
+                shm::impl::destroy(impl_);
                 impl_ = std::move(other.impl_);
             }
             return *this;
@@ -38,17 +38,17 @@ namespace flat_shm
 
         ~SharedMemory() noexcept
         {
-            flat_shm_impl::destroy(impl_);
+            shm::impl::destroy(impl_);
         }
 
         inline FLAT_TYPE &write_ref() noexcept
         {
-            return *static_cast<FLAT_TYPE *>(flat_shm_impl::write_ref_unsafe(impl_));
+            return *static_cast<FLAT_TYPE *>(shm::impl::write_ref_unsafe(impl_));
         }
 
         inline FLAT_TYPE const &read() const noexcept
         {
-            return *static_cast<FLAT_TYPE const *>(flat_shm_impl::read_unsafe(impl_));
+            return *static_cast<FLAT_TYPE const *>(shm::impl::read_unsafe(impl_));
         }
 
         inline auto size() const noexcept
@@ -62,10 +62,10 @@ namespace flat_shm
         }
 
     private:
-        flat_shm_impl::shm impl_;
+        shm::impl::shm impl_;
 
 
-        SharedMemory(flat_shm_impl::shm &&impl) noexcept
+        SharedMemory(shm::impl::shm &&impl) noexcept
             : impl_(std::move(impl))
         {
         }
