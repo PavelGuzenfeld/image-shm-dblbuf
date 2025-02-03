@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>image-shm-dblbuf</name>
+  <version>0.1.0</version>
+  <description>Cmake library</description>
+  <maintainer email="pavelguzenfeld@gmail.com">Pavel Guzenfeld</maintainer>
+  <license>MIT</license>
+
+  <build_depend>cmake-library</build_depend>
+  <depend>double-buffer-swapper</depend>
+  <depend>exceptions-rt</depend>
+  <depend>flat-type</depend>
+  <depend>single-task-runner</depend>
+</package>
