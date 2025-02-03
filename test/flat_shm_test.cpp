@@ -1,6 +1,5 @@
-#include "flat_shared_memory.hpp"
-#include "flat_shm_impl.h"
-#include "flat_shm_producer_consumer.hpp"
+#include "image-shm-dblbuf/flat_shared_memory.hpp"
+#include "image-shm-dblbuf/flat_shm_producer_consumer.hpp"
 #include <assert.h>
 #include <atomic>
 #include <chrono>
@@ -8,7 +7,8 @@
 #include <semaphore.h>
 #include <sys/wait.h>
 #include <vector>
-int main()
+
+void shm_test()
 {
     using namespace flat_shm;
 
@@ -119,6 +119,34 @@ int main()
         assert(read_int == 42 && "Failed to read int after move assignment");
     }
 
+
+}
+
+void shared_memory_struct_test()
+{
+    using namespace flat_shm;
+    {
+        fmt::print("Test SharedMemory with struct\n");
+        struct FlatStruct
+        {
+            int a;
+            double b;
+            char buffer[50]; // Correct declaration of a fixed-size array
+        };
+        auto shared_memory = SharedMemory<FlatStruct>::create("struct_file_name");
+        shared_memory->write_ref() = {42, 42.42, "Hello, shared memory!"};
+        auto read_struct = shared_memory->read();
+        assert(read_struct.a == 42 && "Failed to read struct.a");
+        assert(read_struct.b == 42.42 && "Failed to read struct.b");
+        assert(std::string(read_struct.buffer) == "Hello, shared memory!" && "Failed to read struct.buffer");
+        assert(shared_memory->size() == sizeof(FlatStruct) && "Failed to get size of struct");
+        assert(shared_memory->path() == "/dev/shm/struct_file_name" && "Failed to get path of struct");
+    }
+}
+
+void shm_image_with_semaphores()
+{
+    using namespace flat_shm;
     {
         fmt::print("Test SharedMemory with large image between processes 10K times - timed\n");
         constexpr auto SHARED_MEM_IMAGE_4K_SIZE = 3 * 3840 * 2160; // 4K image size (bytes)
@@ -235,7 +263,11 @@ int main()
         sem_unlink("/shm_write_sem");
         sem_unlink("/shm_read_sem");
     }
+}
 
+void shm_image_lock_free()
+{
+    using namespace flat_shm;
     {
         fmt::print("Test SharedMemory with large image between processes - lock-free style\n");
 
@@ -407,6 +439,14 @@ int main()
             assert(read_int == 42 && "Failed to read int after producer-consumer move constructor");
         }
     }
+}
+
+int main()
+{
+    shm_test();
+    shared_memory_struct_test();
+    shm_image_with_semaphores();
+    shm_image_lock_free();
     fmt::print("All tests passed\n");
     return 0;
 }
