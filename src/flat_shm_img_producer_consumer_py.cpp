@@ -1,37 +1,33 @@
-#include "atomic_semaphore.hpp"
-#include "flat_shm_impl.h"
-#include "image.hpp"
-#include "semaphore_impl.h"
-
+#include "image-shm-dblbuf/image.hpp"
+#include "image-shm-dblbuf/impl/flat_shm.h"
+#include "image-shm-dblbuf/impl/semaphore.h"
 #include <cstring> // For std::memcpy
 #include <pybind11/functional.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-
 namespace py = pybind11;
 
-// This struct is now used as a shared_ptr in Python
 struct ProducerConsumer
 {
-    flat_shm_impl::shm shm_;
-    flat_shm_impl::Semaphore sem_read_;
-    flat_shm_impl::Semaphore sem_write_;
+    shm::impl::shm shm_;
+    shm::impl::Semaphore sem_read_;
+    shm::impl::Semaphore sem_write_;
     std::shared_ptr<img::Image4K_RGB> image_ = std::make_shared<img::Image4K_RGB>();
 };
 
 // The function returns std::shared_ptr<ProducerConsumer>
 [[nodiscard]] constexpr ProducerConsumer create(const std::string &shm_name)
 {
-    auto impl = flat_shm_impl::create(shm_name, sizeof(img::Image4K_RGB));
+    auto impl = shm::impl::create(shm_name, sizeof(img::Image4K_RGB));
     if (!impl)
         throw std::runtime_error(impl.error());
 
-    auto sem_read = flat_shm_impl::create(shm_name + "_read", 0);
+    auto sem_read = shm::impl::create(shm_name + "_read", 0);
     if (!sem_read)
         throw std::runtime_error(sem_read.error());
 
-    auto sem_write = flat_shm_impl::create(shm_name + "_write", 1);
+    auto sem_write = shm::impl::create(shm_name + "_write", 1);
     if (!sem_write)
         throw std::runtime_error(sem_write.error());
 
@@ -43,23 +39,23 @@ struct ProducerConsumer
 
 void destroy(ProducerConsumer &producer_consumer)
 {
-    flat_shm_impl::destroy(producer_consumer.shm_);
-    flat_shm_impl::destroy(producer_consumer.sem_read_);
-    flat_shm_impl::destroy(producer_consumer.sem_write_);
+    shm::impl::destroy(producer_consumer.shm_);
+    shm::impl::destroy(producer_consumer.sem_read_);
+    shm::impl::destroy(producer_consumer.sem_write_);
 }
 
 //--------------------------------------------------------------------------------------------
-using AtomicImage = AtomicSemaphore<img::Image4K_RGB>;
+using Image = img::Image4K_RGB;
 
 struct AtomicProducerConsumer
 {
-    flat_shm_impl::shm shm_;
-    std::shared_ptr<img::Image4K_RGB> image_ = std::make_shared<img::Image4K_RGB>();
+    shm::impl::shm shm_;
+    std::shared_ptr<img::Image4K_RGB> image_ = std::make_shared<Image>();
 };
 
 [[nodiscard]] constexpr AtomicProducerConsumer create_atomic(const std::string &shm_name)
 {
-    auto impl = flat_shm_impl::create(shm_name, sizeof(AtomicImage));
+    auto impl = shm::impl::create(shm_name, sizeof(img::Image4K_RGB));
     if (!impl)
         throw std::runtime_error(impl.error());
 
@@ -69,7 +65,7 @@ struct AtomicProducerConsumer
 
 void destroy_atomic(AtomicProducerConsumer &producer_consumer)
 {
-    flat_shm_impl::destroy(producer_consumer.shm_);
+    shm::impl::destroy(producer_consumer.shm_);
 }
 
 // Create the Pybind11 module
@@ -122,18 +118,18 @@ PYBIND11_MODULE(Share_memory_image_producer_consumer, m)
     if (!self.image_) {
         throw std::runtime_error("Image pointer is null.");
     }
-    // flat_shm_impl::wait(self.sem_write_);
+    // shm::impl::wait(self.sem_write_);
     std::memcpy(self.shm_.data_, &image, sizeof(img::Image4K_RGB));
-    flat_shm_impl::post(self.sem_read_); })
+    shm::impl::post(self.sem_read_); })
         .def("load", [](ProducerConsumer &self) -> std::shared_ptr<img::Image4K_RGB>
              {
                  if (!self.image_)
                  {
                      throw std::runtime_error("Image pointer is null.");
                  }
-                 flat_shm_impl::wait(self.sem_read_);
+                 shm::impl::wait(self.sem_read_);
                  std::memcpy(self.image_.get(), self.shm_.data_, sizeof(img::Image4K_RGB));
-                 // flat_shm_impl::post(self.sem_write_);
+                 // shm::impl::post(self.sem_write_);
                  return self.image_; }, py::return_value_policy::reference_internal);
 
     py::class_<AtomicProducerConsumer>(m, "AtomicProducerConsumer")
@@ -144,18 +140,15 @@ PYBIND11_MODULE(Share_memory_image_producer_consumer, m)
                 if (!self.image_) {
                     throw std::runtime_error("Image pointer is null.");
                 }
-                // self.shm_.write(image);
-                auto atomic_image = static_cast<AtomicImage *>(self.shm_.data_);
-                atomic_image->write(image); })
+                // auto atomic_image = static_cast<Image *>(self.shm_.data_);
+                std::memcpy(self.shm_.data_, &image, sizeof(Image)); })
         .def("load", [](AtomicProducerConsumer &self) -> std::shared_ptr<img::Image4K_RGB>
              {
                     if (!self.image_)
                     {
                         throw std::runtime_error("Image pointer is null.");
                     }
-                    auto * atomic_image = static_cast<AtomicImage *>(self.shm_.data_);
-                    auto const* result = atomic_image->read();
-
-                        std::memcpy(self.image_.get(), result, sizeof(img::Image4K_RGB));
-                        return self.image_; }, py::return_value_policy::reference_internal);
+                    // auto * atomic_image = static_cast<Image *>(self.shm_.data_);
+                    std::memcpy(self.image_.get(), self.shm_.data_, sizeof(Image));
+                    return self.image_; }, py::return_value_policy::reference_internal);
 }

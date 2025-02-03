@@ -6,7 +6,7 @@
 #include <sys/mman.h>   // mmap, PROT_WRITE, MAP_SHARED
 #include <unistd.h>     // ftruncate, close, open
 
-namespace flat_shm_impl
+namespace shm::impl
 {
     constexpr auto const SHARED_MEM_PATH = "/dev/shm/";
     constexpr auto const READ_WRITE_ALL = 0666;
@@ -85,4 +85,4 @@ namespace flat_shm_impl
         return instance.data_;
     }
 
-} // namespace flat_shm_impl
+} // namespace shm::impl
