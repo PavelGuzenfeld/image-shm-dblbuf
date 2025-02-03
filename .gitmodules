@@ -1,0 +1,15 @@
+[submodule "ext/flat-type"]
+	path = ext/flat-type
+	url = https://github.com/PavelGuzenfeld/flat-type
+[submodule "ext/double-buffer-swapper"]
+	path = ext/double-buffer-swapper
+	url = https://github.com/PavelGuzenfeld/double-buffer-swapper
+[submodule "ext/exceptions-rt"]
+	path = ext/exceptions-rt
+	url = https://github.com/PavelGuzenfeld/exceptions-rt
+[submodule "ext/single-task-runner"]
+	path = ext/single-task-runner
+	url = https://github.com/PavelGuzenfeld/single-task-runner
+[submodule "ext/cmake-library"]
+	path = ext/cmake-library
+	url = https://github.com/PavelGuzenfeld/cmake-library
