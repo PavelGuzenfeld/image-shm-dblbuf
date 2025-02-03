@@ -1,73 +1,41 @@
 cmake_minimum_required(VERSION 3.20)
 project(image-shm-dblbuf)
 
-# # Require C++23
-# set(CMAKE_CXX_STANDARD 23)
-# set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# set(CMAKE_CXX_EXTENSIONS OFF)
+# Require C++23
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# # Find dependencies
-# find_package(fmt REQUIRED)
-# find_package(Python3 COMPONENTS Interpreter Development)
-# find_package(pybind11 REQUIRED)
-# find_package(Python REQUIRED COMPONENTS Interpreter Development)
-# find_package(nanobind CONFIG REQUIRED HINTS /usr/local/nanobind/cmake)
+# Find dependencies
+find_package(cmake-library REQUIRED)
+find_package(fmt REQUIRED)
+find_package(pybind11 REQUIRED)
+find_package(Python3 COMPONENTS Interpreter Development)
+find_package(Python REQUIRED COMPONENTS Interpreter Development)
+find_package(nanobind CONFIG REQUIRED HINTS /usr/local/nanobind/cmake)
 
-# # Silence warnings in nanobind headers by marking as SYSTEM include
-# include_directories(SYSTEM /usr/local/nanobind/include)
+# Silence warnings in nanobind headers by marking as SYSTEM include
+include_directories(SYSTEM /usr/local/nanobind/include)
 
-# # Add an option to enable sanitizers
-# option(ENABLE_SANITIZERS "Enable Address/Undefined Behavior sanitizers" OFF)
+# -------------------------------
+# Nanobind module using high-level API
+nanobind_add_module(Share_memory_image_producer_consumer
+    NB_STATIC  # Build nanobind core as static library
+    src/flat_shm_img_producer_consumer_py.cpp
+)
 
-# # Function to apply sanitizer flags to a target
-# function(enable_sanitizers target)
-#     if(ENABLE_SANITIZERS)
-#         if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-#             target_compile_options(${target} PRIVATE -fsanitize=address,undefined)
-#             target_link_options(${target} PRIVATE -fsanitize=address,undefined)
-#         elseif(MSVC)
-#             # Add MSVC equivalent if necessary
-#         endif()
-#     endif()
-# endfunction()
+target_include_directories(Share_memory_image_producer_consumer PRIVATE include)
+target_link_libraries(Share_memory_image_producer_consumer PRIVATE fmt pybind11::module)
 
-# # Function to apply common compile and link options
-# function(set_common_options target)
-#     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-#         target_compile_options(${target} PRIVATE
-#             -O3                # Max optimization
-#             -g3                # Debugging info
-#             -march=native      # Enable CPU-specific optimizations
-#             -funroll-loops     # Unroll loops
-#             -fopenmp           # OpenMP for multithreading
-#             -ffast-math        # Fast math optimizations
-#             -Wstack-usage=4096 # Warn for large stack usage
-#             -Wall              # Enable all warnings
-#             -Wextra            # Enable extra warnings
-#             -Wpedantic         # Enable pedantic warnings
-#             -Werror            # Treat warnings as errors
-#         )
-#         target_link_options(${target} PRIVATE -flto) # Link-time optimization
-#     elseif(MSVC)
-#         target_compile_options(${target} PRIVATE /O2 /GL)
-#         target_link_options(${target} PRIVATE /LTCG)
-#     endif()
-# endfunction()
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set_debug_options(Share_memory_image_producer_consumer)
+else()
+    set_release_options(Share_memory_image_producer_consumer)
+endif()
 
-# # -------------------------------
-# # Nanobind module using high-level API
-# nanobind_add_module(Share_memory_image_producer_consumer
-#     NB_STATIC  # Build nanobind core as static library
-#     src/flat_shm_img_producer_consumer_py.cpp
-# )
-
-# target_link_libraries(Share_memory_image_producer_consumer PRIVATE pybind11::module fmt)
-# set_common_options(Share_memory_image_producer_consumer)
-# enable_sanitizers(Share_memory_image_producer_consumer)
-
-# install(TARGETS Share_memory_image_producer_consumer
-#     DESTINATION lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages
-# )
+install(TARGETS Share_memory_image_producer_consumer
+    DESTINATION lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages
+)
 
 # # -------------------------------
 # # Nanobind module for C++ bindings (shared memory)

@@ -5,7 +5,7 @@
 #include <semaphore.h>  // sem_open, sem_wait, sem_post, sem_close
 #include <string>       // std::string
 
-namespace flat_shm_impl
+namespace shm::impl
 {
     struct Semaphore
     {
@@ -107,4 +107,4 @@ namespace flat_shm_impl
             }
         }
     };
-} // namespace flat_shm_impl
+} // namespace shm::impl
