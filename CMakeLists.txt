@@ -61,12 +61,20 @@ install(TARGETS Share_memory_image_producer_consumer_nb DESTINATION lib/python${
 
 
 # # -------------------------------
-# Test executable
+# Test executables
 add_executable(flat_shm_test test/flat_shm_test.cpp)
 target_include_directories(flat_shm_test PRIVATE include)
 target_link_libraries(flat_shm_test PRIVATE fmt flat-type::flat-type)
 set_debug_options(flat_shm_test)
 enable_sanitizers(flat_shm_test)
 install(TARGETS flat_shm_test DESTINATION bin)
+
+
+add_executable(shm_test test/shm_test.cpp)
+target_include_directories(shm_test PRIVATE include)
+target_link_libraries(shm_test PRIVATE fmt flat-type::flat-type double-buffer-swapper::double-buffer-swapper single-task-runner::single-task-runner)
+set_debug_options(shm_test)
+enable_sanitizers(shm_test)
+install(TARGETS shm_test DESTINATION bin)
 
 
