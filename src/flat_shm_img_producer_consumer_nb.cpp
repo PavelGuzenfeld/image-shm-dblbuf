@@ -1,11 +1,8 @@
-#include "double-buffer-swapper/swapper.hpp"
-#include "image-shm-dblbuf/image.hpp"
-#include "image-shm-dblbuf/impl/flat_shm.h"
-#include "image-shm-dblbuf/impl/semaphore.h"
+#include "image-shm-dblbuf/shm.hpp"
 #include "nanobind/nanobind.h"
 #include "nanobind/ndarray.h"
 #include "nanobind/stl/shared_ptr.h"
-#include "single-task-runner/runner.hpp"
+#include "nanobind/stl/string.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
@@ -43,44 +40,7 @@ void destroy(ProducerConsumer &producer_consumer)
 }
 
 //--------------------------------------------------------------------------------------------
-using Image = img::Image4K_RGB;
 
-struct AtomicProducerConsumer
-{
-    shm::impl::shm shm_;
-    std::shared_ptr<img::Image4K_RGB> image_ = std::make_shared<Image>();
-    img::Image4K_RGB *img_ptr_ = nullptr;
-    std::unique_ptr<DoubleBufferSwapper<img::Image4K_RGB>> swapper_ = nullptr;
-    std::unique_ptr<run::SingleTaskRunner> runner_ = nullptr;
-
-    AtomicProducerConsumer(shm::impl::shm &&shm)
-        : shm_(std::move(shm))
-    {
-        swapper_ = std::make_unique<DoubleBufferSwapper<img::Image4K_RGB>>(&img_ptr_, image_.get());
-        runner_ = std::make_unique<run::SingleTaskRunner>([this]
-                                                          { swapper_->swap(); }, [this](std::string_view msg)
-                                                          { log(msg); });
-    }
-
-    inline void log(std::string_view msg) const noexcept
-    {
-        fmt::print("{}", msg);
-    }
-};
-
-[[nodiscard]] constexpr AtomicProducerConsumer create_atomic(const std::string &shm_name)
-{
-    auto impl = shm::impl::create(shm_name, sizeof(Image));
-    if (!impl)
-        throw std::runtime_error(impl.error());
-
-    return std::move(impl.value());
-};
-
-void destroy_atomic(AtomicProducerConsumer &producer_consumer)
-{
-    shm::impl::destroy(producer_consumer.shm_);
-}
 NB_MODULE(Share_memory_image_producer_consumer_nb, m)
 {
 
@@ -100,6 +60,41 @@ NB_MODULE(Share_memory_image_producer_consumer_nb, m)
         .def("set_data", [](img::Image4K_RGB &self, nb::ndarray<uint8_t const, nb::shape<img::Image4K_RGB::height, img::Image4K_RGB::width, static_cast<std::size_t>(img::channels(img::Image4K_RGB::type))>> array)
              { std::memcpy(self.data.data(), array.data(), array.size() * sizeof(uint8_t)); });
 
+    nb::class_<ReturnImage>(m, "ReturnImage")
+        .def(nb::init<>())
+        .def("timestamp", [](const ReturnImage &self)
+             {
+        if (!self.img_ptr_)
+        {
+            throw std::runtime_error("Image pointer is null.");
+        }
+        return (*self.img_ptr_)->timestamp; })
+
+        .def("frame_number", [](const ReturnImage &self)
+             {
+        if (!self.img_ptr_)
+        {
+            throw std::runtime_error("Image pointer is null.");
+        }
+        return (*self.img_ptr_)->frame_number; })
+
+        .def("get_data", [](const ReturnImage &self)
+             { if (!self.img_ptr_)
+             {
+                 throw std::runtime_error("Image pointer is null.");
+             }
+                return nb::ndarray<uint8_t const, nb::numpy, nb::shape<2160, 3840, 3>>(((*self.img_ptr_)->data.data())); }, nb::rv_policy::reference_internal)
+        .def("__repr__", [](const ReturnImage &self) -> std::string
+             {
+        if (!self.img_ptr_)
+        {
+            throw std::runtime_error("Image pointer is null.");
+        }
+         return fmt::format("ReturnImage(ptr = {:p}, timestamp = {}, frame_number = {})",
+                           static_cast<const void*>(*self.img_ptr_),
+                           (*self.img_ptr_)->timestamp,
+                           (*self.img_ptr_)->frame_number); });
+
     nb::class_<ProducerConsumer>(m, "ProducerConsumer")
         .def_static("create", [](nb::str const &shm_name)
                     { return create(shm_name.c_str()); })
@@ -117,23 +112,31 @@ NB_MODULE(Share_memory_image_producer_consumer_nb, m)
             std::memcpy(self.image_.get(), self.shm_.data_, sizeof(img::Image4K_RGB));
             return self.image_; }, nb::rv_policy::reference_internal);
 
-    nb::class_<AtomicProducerConsumer>(m, "AtomicProducerConsumer")
+    nb::class_<DoubleBufferShem>(m, "DoubleBufferShem")
         .def_static("create", [](nb::str const &shm_name)
-                    { return create_atomic(shm_name.c_str()); })
-        .def(nb::init<shm::impl::shm &&>())
-        .def("close", &destroy_atomic)
-        .def("store", [](AtomicProducerConsumer &self, img::Image4K_RGB const &image)
+                    { return create_shm(shm_name.c_str()); })
+        .def(nb::init<shm::impl::shm &&, shm::impl::Semaphore &&>())
+        .def("close", &destroy_shm)
+        .def("store", [](DoubleBufferShem &self, img::Image4K_RGB const &image)
              {
-        if (!self.image_)
+        if (!self.pre_allocated_)
             throw std::runtime_error("Image pointer is null.");
-        std::memcpy(self.shm_.data_, &image, sizeof(Image)); })
+        shm::impl::wait(self.sem_);
+        std::memcpy(self.shm_.data_, &image, sizeof(Image));
+        shm::impl::post(self.sem_); })
 
-        .def("load", [](AtomicProducerConsumer &self) -> img::Image4K_RGB const *
+        .def("load", [](DoubleBufferShem &self) -> ReturnImage
              {
-                if (!self.image_)
+                 if (!self.pre_allocated_)
                      throw std::runtime_error("Image pointer is null.");
-                self.img_ptr_ = static_cast<Image *>(self.shm_.data_);
-                self.swapper_->stage(self.img_ptr_);
-                self.runner_->trigger_once();
-                return self.img_ptr_; }, nb::rv_policy::reference_internal);
+                //  self.img_ptr_ = static_cast<Image *>(self.shm_.data_);
+                self.swapper_->set_active(self.img_ptr_);
+                 self.swapper_->stage(self.img_ptr_);
+                 self.runner_->trigger_once();
+                 return self.return_image_; }, nb::rv_policy::reference)
+        .def("__repr__", [](const DoubleBufferShem &self) -> std::string
+             { return fmt::format("DoubleBufferShem(shm = {:p}, img_ptr = {:p}, img = {:p})",
+                                  static_cast<const void *>(self.shm_.data_),
+                                  static_cast<const void *>(self.img_ptr_),
+                                  static_cast<const void *>(self.pre_allocated_.get())); });
 }
