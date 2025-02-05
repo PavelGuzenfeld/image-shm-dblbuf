@@ -30,7 +30,6 @@ namespace img
         }
     }
 
-    constexpr size_t CACHE_LINE_SIZE = 64;
 #pragma pack(push, 1)
     template <std::size_t WIDTH, std::size_t HEIGHT, ImageType TYPE>
     struct Image
@@ -40,9 +39,9 @@ namespace img
         static ImageType const type = TYPE;
         static constexpr std::size_t size = WIDTH * HEIGHT * channels(TYPE);
 
-        alignas(CACHE_LINE_SIZE) uint64_t timestamp;
-        alignas(CACHE_LINE_SIZE) uint64_t frame_number;
-        alignas(CACHE_LINE_SIZE) std::array<std::uint8_t, size> data;
+        uint64_t timestamp;
+        uint64_t frame_number;
+        std::array<std::uint8_t, size> data;
     };
 #pragma pack(pop)
 
