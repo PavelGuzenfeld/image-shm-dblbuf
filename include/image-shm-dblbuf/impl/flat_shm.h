@@ -56,6 +56,11 @@ namespace shm::impl
 
     inline void destroy(shm &instance) noexcept
     {
+        if (!instance.file_path_.empty())
+        {
+            unlink(instance.file_path_.c_str());
+            instance.file_path_.clear();
+        }
         if (instance.data_)
         {
             munmap(instance.data_, instance.size_);
@@ -67,22 +72,16 @@ namespace shm::impl
             close(instance.fd_);
             instance.fd_ = -1;
         }
-
-        if (!instance.file_path_.empty())
-        {
-            unlink(instance.file_path_.c_str());
-            instance.file_path_.clear();
-        }
     }
     
-    inline void const *read_unsafe(shm const &instance) noexcept
+    inline void *get(shm const &instance) noexcept
     {
         return instance.data_;
     }
 
-    inline void *write_ref_unsafe(shm &instance) noexcept
+    std::size_t size(shm const &instance) noexcept
     {
-        return instance.data_;
+        return instance.size_;
     }
 
 } // namespace shm::impl
