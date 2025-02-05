@@ -97,12 +97,12 @@ namespace flat_shm
 
         inline T &write_ref() noexcept
         {
-            return *static_cast<T *>(shm::impl::write_ref_unsafe(impl_));
+            return *static_cast<T *>(shm::impl::get(impl_));
         }
 
         inline T const &read() const noexcept
         {
-            return *static_cast<T const *>(shm::impl::read_unsafe(impl_));
+            return *static_cast<T const *>(shm::impl::get(impl_));
         }
     };
 } // namespace flat_shm
