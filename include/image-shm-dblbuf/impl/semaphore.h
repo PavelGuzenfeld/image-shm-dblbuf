@@ -4,6 +4,7 @@
 #include <fmt/format.h> // fmt::format
 #include <semaphore.h>  // sem_open, sem_wait, sem_post, sem_close
 #include <string>       // std::string
+#include <cassert>      // assert
 
 namespace shm::impl
 {
@@ -31,6 +32,28 @@ namespace shm::impl
                 return std::unexpected(fmt::format("sem_open failed: {} for semaphore: {}", strerror(errno), name));
             }
         }
+
+        // check the semaphore's current value to avoid stale/unclean semaphores
+        int sem_value{};
+        if (sem_getvalue(sem, &sem_value) == -1)
+        {
+            sem_close(sem);
+            return std::unexpected(fmt::format("sem_getvalue failed: {} for semaphore: {}", strerror(errno), name));
+        }
+
+        // if the value is unexpectedly high or low, reset to the initial value
+        if (sem_value < 0 || sem_value > initial_value)
+        {
+            fmt::print(stderr, "warning: resetting semaphore '{}' due to unexpected value {}\n", name, sem_value);
+            sem_close(sem);
+            sem_unlink(name.c_str());
+            sem = sem_open(name.c_str(), O_CREAT | O_EXCL, 0644, initial_value);
+            if (sem == SEM_FAILED)
+            {
+                return std::unexpected(fmt::format("sem_open failed during reset: {} for semaphore: {}", strerror(errno), name));
+            }
+        }
+
         return Semaphore{name, sem};
     }
 
@@ -41,11 +64,13 @@ namespace shm::impl
 
     inline bool wait(Semaphore &sem)
     {
+        assert(is_valid(sem) && "semaphore is not valid");
         return sem_wait(sem.sem_) == 0;
     }
 
     inline void post(Semaphore &sem)
     {
+        assert(is_valid(sem) && "semaphore is not valid");
         sem_post(sem.sem_);
     }
 
@@ -54,8 +79,8 @@ namespace shm::impl
         if (sem.sem_)
         {
             post(sem);
-            sem_close(sem.sem_);
             sem_unlink(sem.sem_name_.c_str());
+            sem_close(sem.sem_);
             sem.sem_ = nullptr;
         }
     }
