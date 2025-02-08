@@ -119,21 +119,18 @@ NB_MODULE(Share_memory_image_producer_consumer_nb, m)
         .def("close", &destroy_shm)
         .def("store", [](DoubleBufferShem &self, img::Image4K_RGB const &image)
              {
-        if (!self.pre_allocated_)
-            throw std::runtime_error("Image pointer is null.");
-        shm::impl::wait(self.sem_);
-        std::memcpy(self.shm_.data_, &image, sizeof(Image));
-        shm::impl::post(self.sem_); })
+                 if (!self.pre_allocated_)
+                     throw std::runtime_error("Image pointer is null.");
+                 store(self, image);
+             })
 
         .def("load", [](DoubleBufferShem &self) -> ReturnImage
              {
                  if (!self.pre_allocated_)
                      throw std::runtime_error("Image pointer is null.");
-                //  self.img_ptr_ = static_cast<Image *>(self.shm_.data_);
-                self.swapper_->set_active(self.img_ptr_);
-                 self.swapper_->stage(self.img_ptr_);
-                 self.runner_->trigger_once();
-                 return self.return_image_; }, nb::rv_policy::reference)
+                 return load(self);
+             },
+             nb::rv_policy::reference)
         .def("__repr__", [](const DoubleBufferShem &self) -> std::string
              { return fmt::format("DoubleBufferShem(shm = {:p}, img_ptr = {:p}, img = {:p})",
                                   static_cast<const void *>(self.shm_.data_),
