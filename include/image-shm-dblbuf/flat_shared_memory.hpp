@@ -41,14 +41,9 @@ namespace flat_shm
             shm::impl::destroy(impl_);
         }
 
-        inline FLAT_TYPE &write_ref() noexcept
+        inline FLAT_TYPE &get() noexcept
         {
             return *static_cast<FLAT_TYPE *>(shm::impl::get(impl_));
-        }
-
-        inline FLAT_TYPE const &read() const noexcept
-        {
-            return *static_cast<FLAT_TYPE const *>(shm::impl::get(impl_));
         }
 
         inline auto size() const noexcept

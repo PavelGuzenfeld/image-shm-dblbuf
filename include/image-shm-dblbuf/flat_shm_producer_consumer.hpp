@@ -66,14 +66,14 @@ namespace flat_shm
         inline void produce(T const &data) noexcept
         {
             shm::impl::wait(sem_write_);
-            write_ref() = data;
+            get() = data;
             shm::impl::post(sem_read_);
         }
 
         inline T const &consume() noexcept
         {
             shm::impl::wait(sem_read_);
-            T const &data = read();
+            T const &data = get();
             shm::impl::post(sem_write_);
             return data;
         }
@@ -81,7 +81,7 @@ namespace flat_shm
         void consume(std::function<void(T const &)> consumer) noexcept
         {
             shm::impl::wait(sem_read_);
-            consumer(read());
+            consumer(get());
             shm::impl::post(sem_write_);
         }
 
@@ -95,14 +95,10 @@ namespace flat_shm
         {
         }
 
-        inline T &write_ref() noexcept
+        inline T &get() noexcept
         {
             return *static_cast<T *>(shm::impl::get(impl_));
         }
 
-        inline T const &read() const noexcept
-        {
-            return *static_cast<T const *>(shm::impl::get(impl_));
-        }
     };
 } // namespace flat_shm

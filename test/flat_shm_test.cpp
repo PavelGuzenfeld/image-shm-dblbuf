@@ -8,34 +8,88 @@
 #include <sys/wait.h>
 #include <vector>
 
-void shm_test()
+void shm_integral_test()
 {
     using namespace flat_shm;
 
     {
         fmt::print("Test SharedMemory with int\n");
         auto shared_memory = SharedMemory<int>::create("int_file_name");
-        shared_memory->write_ref() = 42;
-        auto read_int = shared_memory->read();
+        shared_memory->get() = 42;
+        auto read_int = shared_memory->get();
         assert(read_int == 42 && "Failed to read int");
+        (void)shared_memory; // Avoid unused variable warning in release mode
+        (void)read_int;      // Avoid unused variable warning in release mode
     }
 
     {
         fmt::print("Test SharedMemory with double\n");
         auto shared_memory = SharedMemory<double>::create("double_file_name");
-        shared_memory->write_ref() = 42.42;
-        auto read_double = shared_memory->read();
+        shared_memory->get() = 42.42;
+        auto read_double = shared_memory->get();
         assert(read_double == 42.42 && "Failed to read double");
+        (void)shared_memory; // Avoid unused variable warning in release mode
+        (void)read_double;   // Avoid unused variable warning in release mode
     }
 
     {
         fmt::print("Test SharedMemory with char\n");
         auto shared_memory = SharedMemory<char>::create("char_file_name");
-        shared_memory->write_ref() = 'c';
-        auto read_char = shared_memory->read();
+        shared_memory->get() = 'c';
+        auto read_char = shared_memory->get();
         assert(read_char == 'c' && "Failed to read char");
+        (void)shared_memory; // Avoid unused variable warning in release mode
+        (void)read_char;     // Avoid unused variable warning in release mode
     }
 
+    {
+        fmt::print("Test SharedMemory with array\n");
+        auto shared_memory = SharedMemory<int[10]>::create("array_file_name");
+        int data[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        for (int i = 0; i < 10; i++)
+        {
+            shared_memory->get()[i] = data[i];
+        }
+        auto read_data = shared_memory->get();
+        for (int i = 0; i < 10; i++)
+        {
+            assert(read_data[i] == i && "Failed to read array");
+        }
+        assert(shared_memory->size() == sizeof(int[10]) && "Failed to get size of array");
+        assert(shared_memory->path() == "/dev/shm/array_file_name" && "Failed to get path of array");
+        (void)data;      // Avoid unused variable warning in release mode
+        (void)read_data; // Avoid unused variable warning in release mode
+    }
+
+    {
+        fmt::print("Move constructor test\n");
+        auto shared_memory = SharedMemory<int>::create("move_constructor_file_name");
+        shared_memory->get() = 42;
+        auto shared_memory2 = std::move(shared_memory);
+        auto read_int = shared_memory2->get();
+        assert(read_int == 42 && "Failed to read int after move constructor");
+        (void)shared_memory;  // Avoid unused variable warning in release mode
+        (void)shared_memory2; // Avoid unused variable warning in release mode
+        (void)read_int;       // Avoid unused variable warning in release mode
+    }
+
+    {
+        fmt::print("Move assignment test\n");
+        auto shared_memory = SharedMemory<int>::create("move_assignment_file_name");
+        shared_memory->get() = 42;
+        auto shared_memory2 = SharedMemory<int>::create("move_assignment_file_name2");
+        shared_memory2 = std::move(shared_memory);
+        auto read_int = shared_memory2->get();
+        assert(read_int == 42 && "Failed to read int after move assignment");
+        (void)shared_memory;  // Avoid unused variable warning in release mode
+        (void)shared_memory2; // Avoid unused variable warning in release mode
+        (void)read_int;       // Avoid unused variable warning in release mode
+    }
+}
+
+void shm_structs_test()
+{
+    using namespace flat_shm;
     {
         fmt::print("Test SharedMemory with struct\n");
         struct FlatStruct
@@ -45,13 +99,16 @@ void shm_test()
             char buffer[50]; // Correct declaration of a fixed-size array
         };
         auto shared_memory = SharedMemory<FlatStruct>::create("struct_file_name");
-        shared_memory->write_ref() = {42, 42.42, "Hello, shared memory!"};
-        auto read_struct = shared_memory->read();
+        shared_memory->get() = {42, 42.42, "Hello, shared memory!"};
+        auto read_struct = shared_memory->get();
         assert(read_struct.a == 42 && "Failed to read struct.a");
         assert(read_struct.b == 42.42 && "Failed to read struct.b");
         assert(std::string(read_struct.buffer) == "Hello, shared memory!" && "Failed to read struct.buffer");
         assert(shared_memory->size() == sizeof(FlatStruct) && "Failed to get size of struct");
         assert(shared_memory->path() == "/dev/shm/struct_file_name" && "Failed to get path of struct");
+        (void)shared_memory; // Avoid unused variable warning in release mode
+        (void)read_struct;   // Avoid unused variable warning in release mode
+        (void)read_struct;   // Avoid unused variable warning in release mode
     }
 
     {
@@ -71,8 +128,8 @@ void shm_test()
 
         auto shared_memory = SharedMemory<NestedFlatStruct>::create("nested_struct_file_name");
         auto start = std::chrono::high_resolution_clock::now();
-        shared_memory->write_ref() = {{42, 42.42, "Hello, shared memory!"}, 42};
-        auto read_struct = shared_memory->read();
+        shared_memory->get() = {{42, 42.42, "Hello, shared memory!"}, 42};
+        auto read_struct = shared_memory->get();
         auto end = std::chrono::high_resolution_clock::now();
         fmt::print("Time to write and read nested struct: {} us\n", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
         assert(read_struct.inner.a == 42 && "Failed to read nested struct.inner.a");
@@ -81,45 +138,11 @@ void shm_test()
         assert(read_struct.c == 42 && "Failed to read nested struct.c");
         assert(shared_memory->size() == sizeof(NestedFlatStruct) && "Failed to get size of nested struct");
         assert(shared_memory->path() == "/dev/shm/nested_struct_file_name" && "Failed to get path of nested struct");
+        (void)start;         // Avoid unused variable warning in release mode
+        (void)end;           // Avoid unused variable warning in release mode
+        (void)read_struct;   // Avoid unused variable warning in release mode
+        (void)shared_memory; // Avoid unused variable warning in release mode
     }
-
-    {
-        fmt::print("Test SharedMemory with array\n");
-        auto shared_memory = SharedMemory<int[10]>::create("array_file_name");
-        int data[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-        for (int i = 0; i < 10; i++)
-        {
-            shared_memory->write_ref()[i] = data[i];
-        }
-        auto read_data = shared_memory->read();
-        for (int i = 0; i < 10; i++)
-        {
-            assert(read_data[i] == i && "Failed to read array");
-        }
-        assert(shared_memory->size() == sizeof(int[10]) && "Failed to get size of array");
-        assert(shared_memory->path() == "/dev/shm/array_file_name" && "Failed to get path of array");
-    }
-
-    {
-        fmt::print("Move constructor test\n");
-        auto shared_memory = SharedMemory<int>::create("move_constructor_file_name");
-        shared_memory->write_ref() = 42;
-        auto shared_memory2 = std::move(shared_memory);
-        auto read_int = shared_memory2->read();
-        assert(read_int == 42 && "Failed to read int after move constructor");
-    }
-
-    {
-        fmt::print("Move assignment test\n");
-        auto shared_memory = SharedMemory<int>::create("move_assignment_file_name");
-        shared_memory->write_ref() = 42;
-        auto shared_memory2 = SharedMemory<int>::create("move_assignment_file_name2");
-        shared_memory2 = std::move(shared_memory);
-        auto read_int = shared_memory2->read();
-        assert(read_int == 42 && "Failed to read int after move assignment");
-    }
-
-
 }
 
 void shared_memory_struct_test()
@@ -134,13 +157,15 @@ void shared_memory_struct_test()
             char buffer[50]; // Correct declaration of a fixed-size array
         };
         auto shared_memory = SharedMemory<FlatStruct>::create("struct_file_name");
-        shared_memory->write_ref() = {42, 42.42, "Hello, shared memory!"};
-        auto read_struct = shared_memory->read();
+        shared_memory->get() = {42, 42.42, "Hello, shared memory!"};
+        auto read_struct = shared_memory->get();
         assert(read_struct.a == 42 && "Failed to read struct.a");
         assert(read_struct.b == 42.42 && "Failed to read struct.b");
         assert(std::string(read_struct.buffer) == "Hello, shared memory!" && "Failed to read struct.buffer");
         assert(shared_memory->size() == sizeof(FlatStruct) && "Failed to get size of struct");
         assert(shared_memory->path() == "/dev/shm/struct_file_name" && "Failed to get path of struct");
+        (void)shared_memory; // Avoid unused variable warning in release mode
+        (void)read_struct;   // Avoid unused variable warning in release mode
     }
 }
 
@@ -185,8 +210,8 @@ void shm_image_with_semaphores()
             exit(EXIT_FAILURE);
         }
 
-        auto const &read_stats = shared_stats->read();
-        auto const &read_data = shared_memory->read();
+        auto const &read_stats = shared_stats->get();
+        auto const &read_data = shared_memory->get();
 
         for (int i = 0; i < N; ++i)
         {
@@ -214,8 +239,8 @@ void shm_image_with_semaphores()
                 auto const now = std::chrono::high_resolution_clock::now();
                 auto const read_duration = std::chrono::duration_cast<std::chrono::microseconds>(now - read_data.time_stamp).count();
 
-                shared_stats->write_ref() = {.duration_accumulator = std::chrono::microseconds{read_duration + read_stats.duration_accumulator.count()},
-                                             .read_count = read_stats.read_count + 1};
+                shared_stats->get() = {.duration_accumulator = std::chrono::microseconds{read_duration + read_stats.duration_accumulator.count()},
+                                       .read_count = read_stats.read_count + 1};
 
                 fmt::print("Subprocess {} completed successfully\n", i);
                 sem_post(sem_write); // Signal parent
@@ -227,7 +252,7 @@ void shm_image_with_semaphores()
                 sem_wait(sem_write); // Wait for previous child to read
 
                 large_data->time_stamp = std::chrono::high_resolution_clock::now();
-                shared_memory->write_ref() = *large_data;
+                shared_memory->get() = *large_data;
 
                 sem_post(sem_read); // Signal child
                 child_pids.push_back(pid);
@@ -325,7 +350,7 @@ void shm_image_lock_free()
         {
             // Clear flags for this child’s iteration
             {
-                auto &region = shared_mem->write_ref();
+                auto &region = shared_mem->get();
                 region.data_ready.store(false, std::memory_order_release);
                 region.data_read.store(false, std::memory_order_release);
             }
@@ -339,7 +364,7 @@ void shm_image_lock_free()
             else if (pid == 0)
             {
                 // Child process: wait until parent sets data_ready = true
-                auto &region = shared_mem->write_ref(); // same as readRef but non-const
+                auto &region = shared_mem->get(); // same as readRef but non-const
 
                 while (!region.data_ready.load(std::memory_order_acquire))
                 {
@@ -379,20 +404,20 @@ void shm_image_lock_free()
 
                 // 1) Set the timestamp + copy the large data
                 {
-                    auto &region = shared_mem->write_ref();
+                    auto &region = shared_mem->get();
                     region.image.time_stamp = std::chrono::high_resolution_clock::now();
                     region.image.pixels = large_data->pixels;
                 }
 
                 // 2) data_ready = true
                 {
-                    auto &region = shared_mem->write_ref();
+                    auto &region = shared_mem->get();
                     region.data_ready.store(true, std::memory_order_release);
                 }
 
                 // 3) Wait until the child sets data_read = true
                 {
-                    auto &region = shared_mem->write_ref();
+                    auto &region = shared_mem->get();
                     while (!region.data_read.load(std::memory_order_acquire))
                     {
                         sched_yield();
@@ -414,7 +439,7 @@ void shm_image_lock_free()
 
         // Print average duration if we had successful reads
         {
-            const auto &region = shared_mem->read();
+            const auto &region = shared_mem->get();
             auto read_count = region.stats.read_count.load(std::memory_order_relaxed);
             if (read_count > 0)
             {
@@ -437,13 +462,17 @@ void shm_image_lock_free()
             auto producer_consumer2 = std::move(producer_consumer);
             auto read_int = producer_consumer2->consume();
             assert(read_int == 42 && "Failed to read int after producer-consumer move constructor");
+            (void)producer_consumer;  // Avoid unused variable warning in release mode
+            (void)producer_consumer2; // Avoid unused variable warning in release mode
+            (void)read_int;           // Avoid unused variable warning in release mode
         }
     }
 }
 
 int main()
 {
-    shm_test();
+    shm_integral_test();
+    shm_structs_test();
     shared_memory_struct_test();
     shm_image_with_semaphores();
     shm_image_lock_free();
