@@ -16,6 +16,7 @@ find_package(nanobind CONFIG REQUIRED HINTS /usr/local/nanobind/cmake)
 find_package(single-task-runner REQUIRED)
 find_package(double-buffer-swapper REQUIRED)
 find_package(flat-type REQUIRED)
+find_package(exception-rt REQUIRED)
 
 # Silence warnings in nanobind headers by marking as SYSTEM include
 include_directories(SYSTEM /usr/local/nanobind/include)
@@ -49,7 +50,7 @@ nanobind_add_module(Share_memory_image_producer_consumer_nb
 )
 
 target_include_directories(Share_memory_image_producer_consumer_nb PRIVATE include)
-target_link_libraries(Share_memory_image_producer_consumer_nb PRIVATE fmt single-task-runner::single-task-runner double-buffer-swapper::double-buffer-swapper)
+target_link_libraries(Share_memory_image_producer_consumer_nb PRIVATE fmt single-task-runner::single-task-runner double-buffer-swapper::double-buffer-swapper exception-rt::exception-rt)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set_debug_options(Share_memory_image_producer_consumer_nb)
     enable_sanitizers(Share_memory_image_producer_consumer_nb)
@@ -72,7 +73,7 @@ install(TARGETS flat_shm_test DESTINATION bin)
 
 add_executable(shm_test test/shm_test.cpp)
 target_include_directories(shm_test PRIVATE include)
-target_link_libraries(shm_test PRIVATE fmt flat-type::flat-type double-buffer-swapper::double-buffer-swapper single-task-runner::single-task-runner)
+target_link_libraries(shm_test PRIVATE fmt flat-type::flat-type double-buffer-swapper::double-buffer-swapper single-task-runner::single-task-runner exception-rt::exception-rt)
 set_debug_options(shm_test)
 enable_sanitizers(shm_test)
 install(TARGETS shm_test DESTINATION bin)
