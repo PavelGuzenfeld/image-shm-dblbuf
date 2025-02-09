@@ -10,7 +10,7 @@ namespace py = pybind11;
 
 struct ProducerConsumer
 {
-    shm::impl::shm shm_;
+    shm::impl::Shm shm_;
     shm::impl::Semaphore sem_read_;
     shm::impl::Semaphore sem_write_;
     std::shared_ptr<img::Image4K_RGB> image_ = std::make_shared<img::Image4K_RGB>();
@@ -49,7 +49,7 @@ using Image = img::Image4K_RGB;
 
 struct AtomicProducerConsumer
 {
-    shm::impl::shm shm_;
+    shm::impl::Shm shm_;
     std::shared_ptr<img::Image4K_RGB> image_ = std::make_shared<Image>();
 };
 

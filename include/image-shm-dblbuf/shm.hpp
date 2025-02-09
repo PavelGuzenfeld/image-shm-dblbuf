@@ -14,7 +14,7 @@ struct ReturnImage
 
 struct DoubleBufferShem
 {
-    shm::impl::shm shm_;
+    shm::impl::Shm shm_;
     shm::impl::Semaphore sem_;
     std::unique_ptr<Image> pre_allocated_ = nullptr;
     std::unique_ptr<DoubleBufferSwapper<Image>> swapper_;
@@ -22,7 +22,7 @@ struct DoubleBufferShem
     Image *img_ptr_ = nullptr;
     ReturnImage return_image_;
 
-    DoubleBufferShem(shm::impl::shm &&shm, shm::impl::Semaphore &&sem)
+    DoubleBufferShem(shm::impl::Shm &&shm, shm::impl::Semaphore &&sem)
         : shm_(std::move(shm)),
           sem_(std::move(sem))
     {

@@ -57,10 +57,10 @@ namespace flat_shm
         }
 
     private:
-        shm::impl::shm impl_;
+        shm::impl::Shm impl_;
 
 
-        SharedMemory(shm::impl::shm &&impl) noexcept
+        SharedMemory(shm::impl::Shm &&impl) noexcept
             : impl_(std::move(impl))
         {
         }

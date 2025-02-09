@@ -9,7 +9,7 @@ using namespace nb::literals;
 
 struct ProducerConsumer
 {
-    shm::impl::shm shm_;
+    shm::impl::Shm shm_;
     shm::impl::Semaphore sem_read_;
     shm::impl::Semaphore sem_write_;
     std::shared_ptr<img::Image4K_RGB> image_ = std::make_shared<img::Image4K_RGB>();
@@ -115,7 +115,7 @@ NB_MODULE(Share_memory_image_producer_consumer_nb, m)
     nb::class_<DoubleBufferShem>(m, "DoubleBufferShem")
         .def_static("create", [](nb::str const &shm_name)
                     { return create_shm(shm_name.c_str()); })
-        .def(nb::init<shm::impl::shm &&, shm::impl::Semaphore &&>())
+        .def(nb::init<shm::impl::Shm &&, shm::impl::Semaphore &&>())
         .def("close", &destroy_shm)
         .def("store", [](DoubleBufferShem &self, img::Image4K_RGB const &image)
              {

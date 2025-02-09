@@ -1,4 +1,5 @@
 #pragma once
+#include "exception-rt/exception.hpp"
 #include <expected>     // std::expected, std::unexpected
 #include <fcntl.h>      // O_CREAT, O_RDWR
 #include <fmt/format.h> // fmt::format
@@ -10,15 +11,18 @@ namespace shm::impl
 {
     constexpr auto const SHARED_MEM_PATH = "/dev/shm/";
     constexpr auto const READ_WRITE_ALL = 0666;
-    struct shm
+    struct Shm
     {
+        
+        
+        
         std::string file_path_;
         int fd_ = -1;
         void *data_ = nullptr;
         std::size_t size_ = 0;
     };
 
-    inline std::expected<shm, std::string> create(std::string const &shm_name, std::size_t size) noexcept
+    inline std::expected<Shm, std::string> create(std::string const &shm_name, std::size_t size) noexcept
     {
         auto const file_path = fmt::format("{}{}", SHARED_MEM_PATH, shm_name);
         // 1) open the shared memory file
@@ -51,10 +55,10 @@ namespace shm::impl
         }
 
         // 5) Construct and return the 'shm' object
-        return shm{file_path, fd, shm_ptr, size};
+        return Shm{file_path, fd, shm_ptr, size};
     }
 
-    inline void destroy(shm &instance) noexcept
+    inline void destroy(Shm &instance) noexcept
     {
         if (!instance.file_path_.empty())
         {
@@ -73,13 +77,13 @@ namespace shm::impl
             instance.fd_ = -1;
         }
     }
-    
-    inline void *get(shm const &instance) noexcept
+
+    inline void *get(Shm const &instance) noexcept
     {
         return instance.data_;
     }
 
-    std::size_t size(shm const &instance) noexcept
+    std::size_t size(Shm const &instance) noexcept
     {
         return instance.size_;
     }
