@@ -8,7 +8,7 @@
 
   <build_depend>cmake-library</build_depend>
   <depend>double-buffer-swapper</depend>
-  <depend>exceptions-rt</depend>
+  <depend>exception-rt</depend>
   <depend>flat-type</depend>
   <depend>single-task-runner</depend>
 </package>
