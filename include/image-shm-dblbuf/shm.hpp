@@ -28,12 +28,12 @@ struct DoubleBufferShem
     {
         pre_allocated_ = std::make_unique<Image>();
         swapper_ = std::make_unique<DoubleBufferSwapper<Image>>(&img_ptr_, pre_allocated_.get());
-        runner_ = std::make_unique<run::SingleTaskRunner>([&]
+        runner_ = std::make_unique<run::SingleTaskRunner>([this]
                                                           {
                                                               shm::impl::wait(sem_);
                                                               swapper_->swap();
                                                               shm::impl::post(sem_); },
-                                                          [&](std::string_view msg)
+                                                          [this](std::string_view msg)
                                                           { log(msg); });
         return_image_.img_ptr_ = &img_ptr_;
         runner_->async_start();
