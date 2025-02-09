@@ -86,11 +86,11 @@ namespace flat_shm
         }
 
     private:
-        shm::impl::shm impl_;
+        shm::impl::Shm impl_;
         shm::impl::Semaphore sem_read_;
         shm::impl::Semaphore sem_write_;
 
-        constexpr FlatShmProducerConsumer(shm::impl::shm &&impl, shm::impl::Semaphore &&sem_read, shm::impl::Semaphore &&sem_write) noexcept
+        constexpr FlatShmProducerConsumer(shm::impl::Shm &&impl, shm::impl::Semaphore &&sem_read, shm::impl::Semaphore &&sem_write) noexcept
             : impl_{std::move(impl)}, sem_read_{std::move(sem_read)}, sem_write_{std::move(sem_write)}
         {
         }
