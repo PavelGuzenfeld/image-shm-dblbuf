@@ -1,5 +1,5 @@
 #include "image-shm-dblbuf/image.hpp"
-#include "image-shm-dblbuf/impl/flat_shm.h"
+#include "image-shm-dblbuf/impl/shm.h"
 #include "image-shm-dblbuf/impl/semaphore.h"
 #include <cstring> // For std::memcpy
 #include <pybind11/functional.h>
