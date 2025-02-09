@@ -82,7 +82,7 @@ def producer_example_nb(repeat=10) -> list:
 def atomic_producer_example_nb(repeat=10) -> list:
     # Create a producer instance
     shm_name = "shared_memory_4k_rgb_atomic_nb"
-    producer = shm_nb.AtomicProducerConsumer.create(shm_name)
+    producer = shm_nb.DoubleBufferShem.create(shm_name)
     print("AtomicProducerConsumer created:", producer)  # ensure this is a valid object
 
     result = []

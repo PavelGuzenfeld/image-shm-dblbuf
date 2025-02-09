@@ -130,7 +130,7 @@ NB_MODULE(Share_memory_image_producer_consumer_nb, m)
                      throw std::runtime_error("Image pointer is null.");
                  return load(self);
              },
-             nb::rv_policy::reference)
+             nb::rv_policy::reference_internal)
         .def("__repr__", [](const DoubleBufferShem &self) -> std::string
              { return fmt::format("DoubleBufferShem(shm = {:p}, img_ptr = {:p}, img = {:p})",
                                   static_cast<const void *>(self.shm_.data_),

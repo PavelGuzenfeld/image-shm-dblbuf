@@ -2,6 +2,7 @@ import Share_memory_image_producer_consumer as shm
 import Share_memory_image_producer_consumer_nb as shm_nb
 import numpy as np
 from time import perf_counter_ns as perf_counter
+from time import sleep
 
 # Consumer
 def consumer_example(repeat=10) -> list:
@@ -64,7 +65,8 @@ def consumer_example_nb(repeat=10) -> list:
 def atomic_consumer_example_nb(repeat=10) -> list:
     # Create a consumer instance
     shm_name = "shared_memory_4k_rgb_atomic_nb"
-    consumer = shm_nb.AtomicProducerConsumer.create(shm_name)
+    consumer = shm_nb.DoubleBufferShem.create(shm_name)
+    print("Consumer created:", consumer)
     
     # Consume the image
     result = []
