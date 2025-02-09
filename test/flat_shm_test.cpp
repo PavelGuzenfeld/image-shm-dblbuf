@@ -14,76 +14,52 @@ void shm_integral_test()
 
     {
         fmt::print("Test SharedMemory with int\n");
-        auto shared_memory = SharedMemory<int>::create("int_file_name");
-        shared_memory->get() = 42;
-        auto read_int = shared_memory->get();
-        assert(read_int == 42 && "Failed to read int");
-        (void)shared_memory; // Avoid unused variable warning in release mode
-        (void)read_int;      // Avoid unused variable warning in release mode
+        auto shared_memory = SharedMemory<int>("int_file_name");
+        shared_memory.get() = 42;
+        assert(shared_memory.get() == 42 && "Failed to read int");
     }
 
     {
         fmt::print("Test SharedMemory with double\n");
-        auto shared_memory = SharedMemory<double>::create("double_file_name");
-        shared_memory->get() = 42.42;
-        auto read_double = shared_memory->get();
-        assert(read_double == 42.42 && "Failed to read double");
-        (void)shared_memory; // Avoid unused variable warning in release mode
-        (void)read_double;   // Avoid unused variable warning in release mode
+        auto shared_memory = SharedMemory<double>("double_file_name");
+        shared_memory.get() = 42.42;
+        assert(shared_memory.get() == 42.42 && "Failed to read double");
     }
 
     {
         fmt::print("Test SharedMemory with char\n");
-        auto shared_memory = SharedMemory<char>::create("char_file_name");
-        shared_memory->get() = 'c';
-        auto read_char = shared_memory->get();
-        assert(read_char == 'c' && "Failed to read char");
-        (void)shared_memory; // Avoid unused variable warning in release mode
-        (void)read_char;     // Avoid unused variable warning in release mode
+        auto shared_memory = SharedMemory<char>("char_file_name");
+        shared_memory.get() = 'c';
+        assert(shared_memory.get() == 'c' && "Failed to read char");
     }
 
     {
         fmt::print("Test SharedMemory with array\n");
-        auto shared_memory = SharedMemory<int[10]>::create("array_file_name");
+        auto shared_memory = SharedMemory<int[10]>("array_file_name");
         int data[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-        for (int i = 0; i < 10; i++)
-        {
-            shared_memory->get()[i] = data[i];
-        }
-        auto read_data = shared_memory->get();
-        for (int i = 0; i < 10; i++)
-        {
-            assert(read_data[i] == i && "Failed to read array");
-        }
-        assert(shared_memory->size() == sizeof(int[10]) && "Failed to get size of array");
-        assert(shared_memory->path() == "/dev/shm/array_file_name" && "Failed to get path of array");
-        (void)data;      // Avoid unused variable warning in release mode
-        (void)read_data; // Avoid unused variable warning in release mode
+        std::copy_n(data, 10, shared_memory.get());
+        assert(std::all_of(shared_memory.get(), shared_memory.get() + 10, [i = 0](int v) mutable { return v == i++; }) && "Failed to read array");
+        assert(shared_memory.size() == sizeof(data) && "Failed to get size of array");
+        assert(shared_memory.path() == "/dev/shm/array_file_name" && "Failed to get path of array");
     }
 
     {
         fmt::print("Move constructor test\n");
-        auto shared_memory = SharedMemory<int>::create("move_constructor_file_name");
-        shared_memory->get() = 42;
+        auto shared_memory = SharedMemory<int>("move_constructor_file_name");
+        shared_memory.get() = 42;
         auto shared_memory2 = std::move(shared_memory);
-        auto read_int = shared_memory2->get();
-        assert(read_int == 42 && "Failed to read int after move constructor");
-        (void)shared_memory;  // Avoid unused variable warning in release mode
+        assert(shared_memory2.get() == 42 && "Failed to read int after move constructor");
         (void)shared_memory2; // Avoid unused variable warning in release mode
-        (void)read_int;       // Avoid unused variable warning in release mode
     }
 
     {
         fmt::print("Move assignment test\n");
-        auto shared_memory = SharedMemory<int>::create("move_assignment_file_name");
-        shared_memory->get() = 42;
-        auto shared_memory2 = SharedMemory<int>::create("move_assignment_file_name2");
+        auto shared_memory = SharedMemory<int>("move_assignment_file_name");
+        shared_memory.get() = 42;
+        auto shared_memory2 = SharedMemory<int>("move_assignment_file_name2");
         shared_memory2 = std::move(shared_memory);
-        auto read_int = shared_memory2->get();
-        assert(read_int == 42 && "Failed to read int after move assignment");
-        (void)shared_memory;  // Avoid unused variable warning in release mode
+        assert(shared_memory2.get() == 42 && "Failed to read int after move assignment");
         (void)shared_memory2; // Avoid unused variable warning in release mode
-        (void)read_int;       // Avoid unused variable warning in release mode
     }
 }
 
@@ -98,17 +74,13 @@ void shm_structs_test()
             double b;
             char buffer[50]; // Correct declaration of a fixed-size array
         };
-        auto shared_memory = SharedMemory<FlatStruct>::create("struct_file_name");
-        shared_memory->get() = {42, 42.42, "Hello, shared memory!"};
-        auto read_struct = shared_memory->get();
-        assert(read_struct.a == 42 && "Failed to read struct.a");
-        assert(read_struct.b == 42.42 && "Failed to read struct.b");
-        assert(std::string(read_struct.buffer) == "Hello, shared memory!" && "Failed to read struct.buffer");
-        assert(shared_memory->size() == sizeof(FlatStruct) && "Failed to get size of struct");
-        assert(shared_memory->path() == "/dev/shm/struct_file_name" && "Failed to get path of struct");
-        (void)shared_memory; // Avoid unused variable warning in release mode
-        (void)read_struct;   // Avoid unused variable warning in release mode
-        (void)read_struct;   // Avoid unused variable warning in release mode
+        auto shared_memory = SharedMemory<FlatStruct>("struct_file_name");
+        shared_memory.get() = {42, 42.42, "Hello, shared memory!"};
+        assert(shared_memory.get().a == 42 && "Failed to read struct.a");
+        assert(shared_memory.get().b == 42.42 && "Failed to read struct.b");
+        assert(std::string(shared_memory.get().buffer) == "Hello, shared memory!" && "Failed to read struct.buffer");
+        assert(shared_memory.size() == sizeof(FlatStruct) && "Failed to get size of struct");
+        assert(shared_memory.path() == "/dev/shm/struct_file_name" && "Failed to get path of struct");
     }
 
     {
@@ -126,22 +98,19 @@ void shm_structs_test()
             int c;
         };
 
-        auto shared_memory = SharedMemory<NestedFlatStruct>::create("nested_struct_file_name");
+        auto shared_memory = SharedMemory<NestedFlatStruct>("nested_struct_file_name");
         auto start = std::chrono::high_resolution_clock::now();
-        shared_memory->get() = {{42, 42.42, "Hello, shared memory!"}, 42};
-        auto read_struct = shared_memory->get();
+        shared_memory.get() = {{42, 42.42, "Hello, shared memory!"}, 42};
+        auto read_struct = shared_memory.get();
         auto end = std::chrono::high_resolution_clock::now();
         fmt::print("Time to write and read nested struct: {} us\n", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
         assert(read_struct.inner.a == 42 && "Failed to read nested struct.inner.a");
         assert(read_struct.inner.b == 42.42 && "Failed to read nested struct.inner.b");
         assert(std::string(read_struct.inner.buffer) == "Hello, shared memory!" && "Failed to read nested struct.inner.buffer");
         assert(read_struct.c == 42 && "Failed to read nested struct.c");
-        assert(shared_memory->size() == sizeof(NestedFlatStruct) && "Failed to get size of nested struct");
-        assert(shared_memory->path() == "/dev/shm/nested_struct_file_name" && "Failed to get path of nested struct");
-        (void)start;         // Avoid unused variable warning in release mode
-        (void)end;           // Avoid unused variable warning in release mode
-        (void)read_struct;   // Avoid unused variable warning in release mode
-        (void)shared_memory; // Avoid unused variable warning in release mode
+        assert(shared_memory.size() == sizeof(NestedFlatStruct) && "Failed to get size of nested struct");
+        assert(shared_memory.path() == "/dev/shm/nested_struct_file_name" && "Failed to get path of nested struct");
+        (void)read_struct; // Avoid unused variable warning in release mode
     }
 }
 
@@ -156,15 +125,14 @@ void shared_memory_struct_test()
             double b;
             char buffer[50]; // Correct declaration of a fixed-size array
         };
-        auto shared_memory = SharedMemory<FlatStruct>::create("struct_file_name");
-        shared_memory->get() = {42, 42.42, "Hello, shared memory!"};
-        auto read_struct = shared_memory->get();
+        auto shared_memory = SharedMemory<FlatStruct>("struct_file_name");
+        shared_memory.get() = {42, 42.42, "Hello, shared memory!"};
+        auto read_struct = shared_memory.get();
         assert(read_struct.a == 42 && "Failed to read struct.a");
         assert(read_struct.b == 42.42 && "Failed to read struct.b");
         assert(std::string(read_struct.buffer) == "Hello, shared memory!" && "Failed to read struct.buffer");
-        assert(shared_memory->size() == sizeof(FlatStruct) && "Failed to get size of struct");
-        assert(shared_memory->path() == "/dev/shm/struct_file_name" && "Failed to get path of struct");
-        (void)shared_memory; // Avoid unused variable warning in release mode
+        assert(shared_memory.size() == sizeof(FlatStruct) && "Failed to get size of struct");
+        assert(shared_memory.path() == "/dev/shm/struct_file_name" && "Failed to get path of struct");
         (void)read_struct;   // Avoid unused variable warning in release mode
     }
 }
@@ -194,8 +162,8 @@ void shm_image_with_semaphores()
         std::fill(large_data->pixels.begin(), large_data->pixels.end(), std::byte{0x42});
 
         // create shared memory
-        auto shared_memory = SharedMemory<TimedImage>::create("image_shm_test");
-        auto shared_stats = SharedMemory<Stats>::create("stats_shm_test");
+        auto shared_memory = SharedMemory<TimedImage>("image_shm_test");
+        auto shared_stats = SharedMemory<Stats>("stats_shm_test");
 
         constexpr int N = 10; // number of subprocesses
         std::vector<pid_t> child_pids;
@@ -210,8 +178,8 @@ void shm_image_with_semaphores()
             exit(EXIT_FAILURE);
         }
 
-        auto const &read_stats = shared_stats->get();
-        auto const &read_data = shared_memory->get();
+        auto const &read_stats = shared_stats.get();
+        auto const &read_data = shared_memory.get();
 
         for (int i = 0; i < N; ++i)
         {
@@ -239,7 +207,7 @@ void shm_image_with_semaphores()
                 auto const now = std::chrono::high_resolution_clock::now();
                 auto const read_duration = std::chrono::duration_cast<std::chrono::microseconds>(now - read_data.time_stamp).count();
 
-                shared_stats->get() = {.duration_accumulator = std::chrono::microseconds{read_duration + read_stats.duration_accumulator.count()},
+                shared_stats.get() = {.duration_accumulator = std::chrono::microseconds{read_duration + read_stats.duration_accumulator.count()},
                                        .read_count = read_stats.read_count + 1};
 
                 fmt::print("Subprocess {} completed successfully\n", i);
@@ -252,7 +220,7 @@ void shm_image_with_semaphores()
                 sem_wait(sem_write); // Wait for previous child to read
 
                 large_data->time_stamp = std::chrono::high_resolution_clock::now();
-                shared_memory->get() = *large_data;
+                shared_memory.get() = *large_data;
 
                 sem_post(sem_read); // Signal child
                 child_pids.push_back(pid);

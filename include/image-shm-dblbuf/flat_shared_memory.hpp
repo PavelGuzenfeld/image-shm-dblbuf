@@ -1,68 +1,33 @@
 #pragma once
-#include "impl/shm.h"
 #include "flat-type/flat.hpp"
+#include "impl/shm.h"
 
 namespace flat_shm
 {
-    template <FlatType FLAT_TYPE>
+    template <FlatType FLAT>
     struct SharedMemory
     {
-        static constexpr std::expected<SharedMemory<FLAT_TYPE>, std::string> create(std::string const &shm_name) noexcept
-        {
-            auto const size = sizeof(FLAT_TYPE);
-            auto impl = shm::impl::create(shm_name, size);
-            if (impl.has_value())
-            {
-                return SharedMemory<FLAT_TYPE>{std::move(impl.value())};
-            }
-            return std::unexpected(impl.error());
-        }
-
-        SharedMemory(SharedMemory const &) = delete;
-        SharedMemory &operator=(SharedMemory const &) = delete;
-
-        SharedMemory(SharedMemory &&other) noexcept
-            : impl_(std::move(other.impl_))
+        SharedMemory(std::string const &file_path)
+            : impl_(file_path, sizeof(FLAT))
         {
         }
 
-        SharedMemory &operator=(SharedMemory &&other) noexcept
+        inline FLAT &get() noexcept
         {
-            if (this != &other)
-            {
-                shm::impl::destroy(impl_);
-                impl_ = std::move(other.impl_);
-            }
-            return *this;
-        }
-
-        ~SharedMemory() noexcept
-        {
-            shm::impl::destroy(impl_);
-        }
-
-        inline FLAT_TYPE &get() noexcept
-        {
-            return *static_cast<FLAT_TYPE *>(shm::impl::get(impl_));
+            return *static_cast<FLAT *>(impl_.get());
         }
 
         inline auto size() const noexcept
         {
-            return impl_.size_;
+            return impl_.size();
         }
 
         inline auto path() const noexcept
         {
-            return impl_.file_path_;
+            return impl_.file_path();
         }
 
     private:
         shm::impl::Shm impl_;
-
-
-        SharedMemory(shm::impl::Shm &&impl) noexcept
-            : impl_(std::move(impl))
-        {
-        }
     };
 } // namespace flat_shem

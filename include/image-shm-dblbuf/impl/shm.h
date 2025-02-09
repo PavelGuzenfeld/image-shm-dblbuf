@@ -11,81 +11,125 @@ namespace shm::impl
 {
     constexpr auto const SHARED_MEM_PATH = "/dev/shm/";
     constexpr auto const READ_WRITE_ALL = 0666;
-    struct Shm
+
+    class Shm
     {
-        
-        
-        
+    public:
+        Shm(std::string file_path, std::size_t size)
+            : file_path_(path(file_path)),
+              size_(size)
+        {
+            // 1) open the shared memory file
+            int const fd = open(file_path.c_str(), O_CREAT | O_RDWR, READ_WRITE_ALL);
+            if (fd < 0)
+            {
+                auto const error_msg = fmt::format("Shared memory open failed: {} for file: {}",
+                                                   strerror(errno), file_path);
+                throw std::runtime_error(std::move(error_msg));
+            }
+
+            // 2) set the size of the shared memory file
+            if (ftruncate(fd, size) < 0)
+            {
+                close(fd);
+                auto const error_msg = fmt::format("Shared memory ftruncate failed: {} for file: {}",
+                                                   strerror(errno), file_path);
+                throw std::runtime_error(std::move(error_msg));
+            }
+
+            // 3) map the shared memory
+            void *shm_ptr = mmap(nullptr, size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
+            if (shm_ptr == MAP_FAILED)
+            {
+                close(fd);
+                auto const error_msg = fmt::format("mmap failed: {} for file: {}",
+                                                   strerror(errno), file_path);
+                throw std::runtime_error(std::move(error_msg));
+            }
+
+            fd_ = fd;
+            data_ = shm_ptr;
+        }
+
+        Shm(Shm const &) = delete;
+        Shm &operator=(Shm const &) = delete;
+
+        Shm(Shm &&other) noexcept
+            : file_path_(std::move(other.file_path_)),
+              size_(other.size_),
+              fd_(other.fd_),
+              data_(other.data_)
+        {
+            other.fd_ = -1;
+            other.data_ = nullptr;
+            other.size_ = 0;
+        }
+
+        Shm &operator=(Shm &&other) noexcept
+        {
+            if (this != &other)
+            {
+                destroy();
+                file_path_ = std::move(other.file_path_);
+                fd_ = other.fd_;
+                data_ = other.data_;
+                size_ = other.size_;
+                other.fd_ = -1;
+                other.data_ = nullptr;
+                other.size_ = 0;
+            }
+            return *this;
+        }
+
+        ~Shm() noexcept
+        {
+            destroy();
+        }
+
+        inline void *get() const noexcept
+        {
+            return data_;
+        }
+
+        inline std::size_t size() const noexcept
+        {
+            return size_;
+        }
+
+        inline std::string file_path() const noexcept
+        {
+            return file_path_;
+        }
+
+    private:
+        constexpr std::string path(std::string const &file_path) noexcept
+        {
+            return fmt::format("{}{}", SHARED_MEM_PATH, file_path);
+        }
+        void destroy() noexcept
+        {
+            if (!file_path_.empty())
+            {
+                unlink(file_path_.c_str());
+                file_path_.clear();
+            }
+            if (data_)
+            {
+                munmap(data_, size_);
+                data_ = nullptr;
+            }
+
+            if (fd_ >= 0)
+            {
+                close(fd_);
+                fd_ = -1;
+            }
+        }
+
         std::string file_path_;
-        int fd_ = -1;
-        void *data_ = nullptr;
         std::size_t size_ = 0;
+        int fd_ = -1;
+        mutable void *data_ = nullptr;
     };
-
-    inline std::expected<Shm, std::string> create(std::string const &shm_name, std::size_t size) noexcept
-    {
-        auto const file_path = fmt::format("{}{}", SHARED_MEM_PATH, shm_name);
-        // 1) open the shared memory file
-        int fd = open(file_path.c_str(), O_CREAT | O_RDWR, READ_WRITE_ALL);
-        if (fd < 0)
-        {
-            auto const error_msg = fmt::format("Shared memory open failed: {} for file: {}",
-                                               strerror(errno), file_path);
-            return std::unexpected(std::move(error_msg));
-        }
-
-        // 2) set the size of the shared memory file
-        if (ftruncate(fd, size) < 0)
-        {
-            close(fd);
-            auto const error_msg = fmt::format("Shared memory ftruncate failed: {} for file: {}",
-                                               strerror(errno), file_path);
-            return std::unexpected(std::move(error_msg));
-        }
-
-        // 3) map the shared memory
-        std::byte *shm_ptr = static_cast<std::byte *>(
-            mmap(nullptr, size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0));
-        if (shm_ptr == MAP_FAILED)
-        {
-            close(fd);
-            auto const error_msg = fmt::format("mmap failed: {} for file: {}",
-                                               strerror(errno), file_path);
-            return std::unexpected(std::move(error_msg));
-        }
-
-        // 5) Construct and return the 'shm' object
-        return Shm{file_path, fd, shm_ptr, size};
-    }
-
-    inline void destroy(Shm &instance) noexcept
-    {
-        if (!instance.file_path_.empty())
-        {
-            unlink(instance.file_path_.c_str());
-            instance.file_path_.clear();
-        }
-        if (instance.data_)
-        {
-            munmap(instance.data_, instance.size_);
-            instance.data_ = nullptr;
-        }
-
-        if (instance.fd_ >= 0)
-        {
-            close(instance.fd_);
-            instance.fd_ = -1;
-        }
-    }
-
-    inline void *get(Shm const &instance) noexcept
-    {
-        return instance.data_;
-    }
-
-    std::size_t size(Shm const &instance) noexcept
-    {
-        return instance.size_;
-    }
 
 } // namespace shm::impl
