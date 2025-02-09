@@ -29,7 +29,7 @@ nanobind_add_module(Share_memory_image_producer_consumer
 )
 
 target_include_directories(Share_memory_image_producer_consumer PRIVATE include)
-target_link_libraries(Share_memory_image_producer_consumer PRIVATE fmt pybind11::module)
+target_link_libraries(Share_memory_image_producer_consumer PRIVATE fmt pybind11::module exception-rt::exception-rt)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set_debug_options(Share_memory_image_producer_consumer)
@@ -65,7 +65,7 @@ install(TARGETS Share_memory_image_producer_consumer_nb DESTINATION lib/python${
 # Test executables
 add_executable(flat_shm_test test/flat_shm_test.cpp)
 target_include_directories(flat_shm_test PRIVATE include)
-target_link_libraries(flat_shm_test PRIVATE fmt flat-type::flat-type)
+target_link_libraries(flat_shm_test PRIVATE fmt flat-type::flat-type exception-rt::exception-rt)
 set_debug_options(flat_shm_test)
 enable_sanitizers(flat_shm_test)
 install(TARGETS flat_shm_test DESTINATION bin)
