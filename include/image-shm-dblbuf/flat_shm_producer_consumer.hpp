@@ -1,5 +1,5 @@
 #pragma once
-#include "impl/flat_shm.h"
+#include "impl/shm.h"
 #include "impl/semaphore.h"
 #include <functional>
 
