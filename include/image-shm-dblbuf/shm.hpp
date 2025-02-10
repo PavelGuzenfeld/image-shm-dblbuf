@@ -40,7 +40,9 @@ struct DoubleBufferShem
     DoubleBufferShem(std::string const &shm_name)
         : shm_(shm::path(shm_name), sizeof(Image)),
           sem_(shm_name + "_sem", 1),
-          pre_allocated_(std::make_unique<Image>())
+          pre_allocated_(std::make_unique<Image>()),
+          img_ptr_(nullptr),
+          return_image_{&img_ptr_}
     {
         swapper_ = std::make_unique<DoubleBufferSwapper<Image>>(&img_ptr_, pre_allocated_.get());
         runner_ = std::make_unique<run::SingleTaskRunner>([&]
@@ -50,7 +52,6 @@ struct DoubleBufferShem
                                                             sem_.post(); },
                                                           [&](std::string_view msg)
                                                           { log(msg); });
-        return_image_.img_ptr_ = &img_ptr_;
         runner_->async_start();
     }
 
