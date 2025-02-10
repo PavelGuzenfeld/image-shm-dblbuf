@@ -31,10 +31,10 @@ struct DoubleBufferShem
 {
     shm::Shm shm_;
     shm::Semaphore sem_;
-    std::unique_ptr<Image> pre_allocated_ = nullptr;
+    std::unique_ptr<Image> pre_allocated_;
     std::unique_ptr<DoubleBufferSwapper<Image>> swapper_;
     std::unique_ptr<run::SingleTaskRunner> runner_;
-    Image *img_ptr_ = nullptr;
+    Image *img_ptr_;
     ReturnImage return_image_;
 
     DoubleBufferShem(std::string const &shm_name)
