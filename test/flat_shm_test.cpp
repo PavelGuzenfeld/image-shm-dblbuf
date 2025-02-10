@@ -7,6 +7,7 @@
 #include <semaphore.h>
 #include <sys/wait.h>
 #include <vector>
+#include <fmt/core.h>
 
 void shm_integral_test()
 {

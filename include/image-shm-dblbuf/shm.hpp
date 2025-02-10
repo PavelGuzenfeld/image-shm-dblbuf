@@ -1,9 +1,10 @@
 #pragma once
 #include "double-buffer-swapper/swapper.hpp"
 #include "image-shm-dblbuf/image.hpp"
-#include "image-shm-dblbuf/impl/semaphore.h"
-#include "image-shm-dblbuf/impl/shm.h"
+#include "shm/semaphore.hpp"
+#include "shm/shm.hpp"
 #include "single-task-runner/runner.hpp"
+#include <fmt/core.h>
 
 using Image = img::Image4K_RGB;
 
@@ -12,10 +13,15 @@ struct ReturnImage
     Image **img_ptr_ = nullptr;
 };
 
+void log(std::string_view msg) noexcept
+{
+    fmt::print("{}", msg);
+}
+
 struct DoubleBufferShem
 {
-    shm::impl::Shm shm_;
-    shm::impl::Semaphore sem_;
+    shm::Shm shm_;
+    shm::Semaphore sem_;
     std::unique_ptr<Image> pre_allocated_ = nullptr;
     std::unique_ptr<DoubleBufferSwapper<Image>> swapper_;
     std::unique_ptr<run::SingleTaskRunner> runner_;
@@ -39,11 +45,6 @@ struct DoubleBufferShem
         runner_->async_start();
     }
 
-    inline void log(std::string_view msg) const noexcept
-    {
-        fmt::print("{}", msg);
-    }
-
     ~DoubleBufferShem()
     {
         runner_->async_stop();
@@ -54,8 +55,7 @@ struct DoubleBufferShem
     void store(Image const &image)
     {
         sem_.wait();
-        // shm_.store(image);
-        std::memcpy(shm_.get(), &image, sizeof(Image));
+        *static_cast<Image *>(shm_.get()) = image;
         sem_.post();
     }
 
