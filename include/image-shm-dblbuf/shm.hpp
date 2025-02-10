@@ -38,7 +38,7 @@ struct DoubleBufferShem
     ReturnImage return_image_;
 
     DoubleBufferShem(std::string const &shm_name)
-        : shm_(shm_name, sizeof(Image)),
+        : shm_(shm::path(shm_name), sizeof(Image)),
           sem_(shm_name + "_sem", 1),
           pre_allocated_(std::make_unique<Image>())
     {
