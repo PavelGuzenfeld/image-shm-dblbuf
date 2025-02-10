@@ -102,7 +102,7 @@ namespace shm::impl
         }
 
     private:
-        constexpr std::string path(std::string const &file_path) noexcept
+        constexpr static std::string path(std::string const &file_path) noexcept
         {
             return fmt::format("{}{}", SHARED_MEM_PATH, file_path);
         }

@@ -6,7 +6,7 @@
 void test_result_address_switch()
 {
     auto const shm_name = "test";
-    auto shm = DoubleBufferShem(shm_name, sizeof(Image));
+    auto shm = DoubleBufferShem(shm_name);
 
     assert(shm.shm_.get() != nullptr);
 

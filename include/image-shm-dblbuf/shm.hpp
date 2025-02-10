@@ -10,6 +10,15 @@ using Image = img::Image4K_RGB;
 struct ReturnImage
 {
     Image **img_ptr_ = nullptr;
+
+    inline uint64_t timestamp() const noexcept
+    {
+        return (*img_ptr_)->timestamp;
+    }
+    inline uint64_t frame_number() const noexcept
+    {
+        return (*img_ptr_)->frame_number;
+    }
 };
 
 struct DoubleBufferShem
@@ -22,8 +31,8 @@ struct DoubleBufferShem
     Image *img_ptr_ = nullptr;
     ReturnImage return_image_;
 
-    DoubleBufferShem(std::string const &shm_name, std::size_t size = sizeof(Image))
-        : shm_(shm_name, size),
+    DoubleBufferShem(std::string const &shm_name)
+        : shm_(shm_name, sizeof(Image)),
           sem_(shm_name + "_sem", 1),
           pre_allocated_(std::make_unique<Image>())
     {
@@ -54,8 +63,7 @@ struct DoubleBufferShem
     void store(Image const &image)
     {
         sem_.wait();
-        // shm_.store(image);
-        std::memcpy(shm_.get(), &image, sizeof(Image));
+        *static_cast<Image *>(shm_.get()) = image;
         sem_.post();
     }
 
