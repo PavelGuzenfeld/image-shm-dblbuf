@@ -6,7 +6,6 @@
 
 namespace img
 {
-
     enum class ImageType : std::uint8_t
     {
         RGB,

@@ -1,6 +1,6 @@
 #pragma once
-#include "impl/shm.h"
-#include "impl/semaphore.h"
+#include "shm/shm.hpp"
+#include "shm/semaphore.hpp"
 #include <functional>
 
 namespace flat_shm
@@ -35,9 +35,9 @@ namespace flat_shm
         }
 
     private:
-        shm::impl::Shm impl_;
-        shm::impl::Semaphore sem_read_;
-        shm::impl::Semaphore sem_write_;
+        shm::Shm impl_;
+        shm::Semaphore sem_read_;
+        shm::Semaphore sem_write_;
 
         inline T &get() noexcept
         {
