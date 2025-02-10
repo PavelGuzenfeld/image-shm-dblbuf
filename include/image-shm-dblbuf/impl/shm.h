@@ -20,7 +20,7 @@ namespace shm::impl
               size_(size)
         {
             // 1) open the shared memory file
-            int const fd = open(file_path.c_str(), O_CREAT | O_RDWR, READ_WRITE_ALL);
+            int const fd = open(file_path_.c_str(), O_CREAT | O_RDWR, READ_WRITE_ALL);
             if (fd < 0)
             {
                 auto const error_msg = fmt::format("Shared memory open failed: {} for file: {}",
