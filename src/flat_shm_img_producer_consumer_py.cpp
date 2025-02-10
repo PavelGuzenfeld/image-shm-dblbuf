@@ -1,6 +1,6 @@
 #include "image-shm-dblbuf/image.hpp"
-#include "image-shm-dblbuf/impl/semaphore.h"
-#include "image-shm-dblbuf/impl/shm.h"
+#include "shm/semaphore.hpp"
+#include "shm/shm.hpp"
 #include <cstring> // For std::memcpy
 #include <pybind11/functional.h>
 #include <pybind11/numpy.h>
@@ -10,9 +10,9 @@ namespace py = pybind11;
 
 struct ProducerConsumer
 {
-    shm::impl::Shm shm_;
-    shm::impl::Semaphore sem_read_;
-    shm::impl::Semaphore sem_write_;
+    shm::Shm shm_;
+    shm::Semaphore sem_read_;
+    shm::Semaphore sem_write_;
     std::shared_ptr<img::Image4K_RGB> image_ = std::make_shared<img::Image4K_RGB>();
 
     ProducerConsumer(std::string const &shm_name)
@@ -28,7 +28,7 @@ using Image = img::Image4K_RGB;
 
 struct AtomicProducerConsumer
 {
-    shm::impl::Shm shm_;
+    shm::Shm shm_;
     std::shared_ptr<img::Image4K_RGB> image_ = std::make_shared<Image>();
 
     AtomicProducerConsumer(std::string const &shm_name)

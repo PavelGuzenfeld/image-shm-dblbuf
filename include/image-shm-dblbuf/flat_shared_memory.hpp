@@ -1,6 +1,6 @@
 #pragma once
 #include "flat-type/flat.hpp"
-#include "impl/shm.h"
+#include "shm/shm.hpp"
 
 namespace flat_shm
 {
@@ -28,6 +28,6 @@ namespace flat_shm
         }
 
     private:
-        shm::impl::Shm impl_;
+        shm::Shm impl_;
     };
 } // namespace flat_shem

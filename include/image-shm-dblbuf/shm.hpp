@@ -1,9 +1,10 @@
 #pragma once
 #include "double-buffer-swapper/swapper.hpp"
 #include "image-shm-dblbuf/image.hpp"
-#include "image-shm-dblbuf/impl/semaphore.h"
-#include "image-shm-dblbuf/impl/shm.h"
+#include "shm/semaphore.hpp"
+#include "shm/shm.hpp"
 #include "single-task-runner/runner.hpp"
+#include <fmt/core.h>
 
 using Image = img::Image4K_RGB;
 
@@ -21,10 +22,15 @@ struct ReturnImage
     }
 };
 
+void log(std::string_view msg) noexcept
+{
+    fmt::print("{}", msg);
+}
+
 struct DoubleBufferShem
 {
-    shm::impl::Shm shm_;
-    shm::impl::Semaphore sem_;
+    shm::Shm shm_;
+    shm::Semaphore sem_;
     std::unique_ptr<Image> pre_allocated_ = nullptr;
     std::unique_ptr<DoubleBufferSwapper<Image>> swapper_;
     std::unique_ptr<run::SingleTaskRunner> runner_;
@@ -46,11 +52,6 @@ struct DoubleBufferShem
                                                           { log(msg); });
         return_image_.img_ptr_ = &img_ptr_;
         runner_->async_start();
-    }
-
-    inline void log(std::string_view msg) const noexcept
-    {
-        fmt::print("{}", msg);
     }
 
     ~DoubleBufferShem()
