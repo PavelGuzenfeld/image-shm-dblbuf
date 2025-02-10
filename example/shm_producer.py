@@ -43,7 +43,6 @@ def producer_example(repeat=10) -> list:
         print(f"Storing image frame number: {image.frame_number}")
         producer.store(image)
         result.append((int(perf_counter()) - image.timestamp) / 1e6)
-    producer.close()
     return result
 
 
@@ -59,14 +58,13 @@ def atomic_producer_example(repeat=10) -> list:
         image.frame_number = frame_id
         producer.store(image)
         result.append((int(perf_counter()) - image.timestamp) / 1e6)
-    producer.close()
     return result
 
 
 def producer_example_nb(repeat=10) -> list:
     # Create a producer instance
     shm_name = "shared_memory_4k_rgb_nb"
-    producer = shm_nb.ProducerConsumer.create(shm_name)
+    producer = shm_nb.ProducerConsumer(shm_name)
     print("ProducerConsumer created:", producer)  # ensure this is a valid object
 
     result = []
@@ -75,14 +73,13 @@ def producer_example_nb(repeat=10) -> list:
         image_nb.frame_number = frame_id
         producer.store(image_nb)
         result.append((int(perf_counter()) - image_nb.timestamp) / 1e6)
-    producer.close()
     return result
 
 
 def atomic_producer_example_nb(repeat=10) -> list:
     # Create a producer instance
     shm_name = "shared_memory_4k_rgb_atomic_nb"
-    producer = shm_nb.DoubleBufferShem.create(shm_name)
+    producer = shm_nb.DoubleBufferShem(shm_name)
     print("AtomicProducerConsumer created:", producer)  # ensure this is a valid object
 
     result = []
@@ -91,7 +88,6 @@ def atomic_producer_example_nb(repeat=10) -> list:
         image_nb.frame_number = frame_id
         producer.store(image_nb)
         result.append((int(perf_counter()) - image_nb.timestamp) / 1e6)
-    producer.close()
     return result
 
 # Main
