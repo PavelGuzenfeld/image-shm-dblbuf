@@ -44,21 +44,21 @@ install(TARGETS Share_memory_image_producer_consumer
 
 # -------------------------------
 # Nanobind module for C++ bindings (shared memory)
-nanobind_add_module(Share_memory_image_producer_consumer_nb
+nanobind_add_module(image_shm_dblbuff
     NB_STATIC
     src/flat_shm_img_producer_consumer_nb.cpp
 )
 
-target_include_directories(Share_memory_image_producer_consumer_nb PRIVATE include)
-target_link_libraries(Share_memory_image_producer_consumer_nb PRIVATE fmt single-task-runner::single-task-runner double-buffer-swapper::double-buffer-swapper exception-rt::exception-rt)
+target_include_directories(image_shm_dblbuff PRIVATE include)
+target_link_libraries(image_shm_dblbuff PRIVATE fmt single-task-runner::single-task-runner double-buffer-swapper::double-buffer-swapper exception-rt::exception-rt)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set_debug_options(Share_memory_image_producer_consumer_nb)
-    enable_sanitizers(Share_memory_image_producer_consumer_nb)
+    set_debug_options(image_shm_dblbuff)
+    enable_sanitizers(image_shm_dblbuff)
 else()
-    set_release_options(Share_memory_image_producer_consumer_nb)
+    set_release_options(image_shm_dblbuff)
 endif()
 
-install(TARGETS Share_memory_image_producer_consumer_nb DESTINATION lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages)
+install(TARGETS image_shm_dblbuff DESTINATION lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages)
 
 
 # # -------------------------------
