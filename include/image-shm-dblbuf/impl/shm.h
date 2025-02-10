@@ -1,11 +1,11 @@
 #pragma once
-#include "exception-rt/exception.hpp"
-#include <expected>     // std::expected, std::unexpected
-#include <fcntl.h>      // O_CREAT, O_RDWR
-#include <fmt/format.h> // fmt::format
-#include <string>       // std::string
-#include <sys/mman.h>   // mmap, PROT_WRITE, MAP_SHARED
-#include <unistd.h>     // ftruncate, close, open
+#include "exception-rt/exception.hpp" // std::runtime_error
+#include <expected>                   // std::expected, std::unexpected
+#include <fcntl.h>                    // O_CREAT, O_RDWR
+#include <fmt/format.h>               // fmt::format
+#include <string>                     // std::string
+#include <sys/mman.h>                 // mmap, PROT_WRITE, MAP_SHARED
+#include <unistd.h>                   // ftruncate, close, open
 
 namespace shm::impl
 {
@@ -106,6 +106,7 @@ namespace shm::impl
         {
             return fmt::format("{}{}", SHARED_MEM_PATH, file_path);
         }
+        
         void destroy() noexcept
         {
             if (!file_path_.empty())
