@@ -8,7 +8,7 @@ namespace flat_shm
     struct SharedMemory
     {
         SharedMemory(std::string const &file_path)
-            : impl_(file_path, sizeof(FLAT))
+            : impl_(shm::path(file_path), sizeof(FLAT))
         {
         }
 
