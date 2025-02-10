@@ -1,5 +1,5 @@
 import Share_memory_image_producer_consumer as shm
-import Share_memory_image_producer_consumer_nb as shm_nb
+import image_shm_dblbuff as shm_nb
 import numpy as np
 from time import perf_counter_ns as perf_counter
 
