@@ -21,7 +21,6 @@ def consumer_example(repeat=10) -> list:
         result.append(elapsed_time)
         if retrieved_image.frame_number == repeat - 1:
             break
-    consumer.close()
     return result
 
 def atomic_consumer_example(repeat=10) -> list:
@@ -40,13 +39,12 @@ def atomic_consumer_example(repeat=10) -> list:
         result.append(elapsed_time)
         if retrieved_image.frame_number == repeat - 1:
             break
-    consumer.close()
     return result
 
 def consumer_example_nb(repeat=10) -> list:
     # Create a consumer instance
     shm_name = "shared_memory_4k_rgb_nb"
-    consumer = shm_nb.ProducerConsumer.create(shm_name)
+    consumer = shm_nb.ProducerConsumer(shm_name)
     
     # Consume the image
     result = []
@@ -59,13 +57,12 @@ def consumer_example_nb(repeat=10) -> list:
         result.append(elapsed_time)
         if retrieved_image.frame_number == repeat - 1:
             break
-    consumer.close()
     return result
 
 def atomic_consumer_example_nb(repeat=10) -> list:
     # Create a consumer instance
     shm_name = "shared_memory_4k_rgb_atomic_nb"
-    consumer = shm_nb.DoubleBufferShem.create(shm_name)
+    consumer = shm_nb.DoubleBufferShem(shm_name)
     print("Consumer created:", consumer)
     
     # Consume the image
@@ -79,7 +76,6 @@ def atomic_consumer_example_nb(repeat=10) -> list:
         result.append(elapsed_time)
         if retrieved_image.frame_number == repeat - 1:
             break
-    consumer.close()
     return result
 
 # Main
