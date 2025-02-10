@@ -9,8 +9,8 @@ using namespace nb::literals;
 
 struct ProducerConsumer
 {
-     shm::impl::Shm shm_;
-     std::shared_ptr<img::Image4K_RGB> image_ = std::make_shared<img::Image4K_RGB>();
+    shm::Shm shm_;
+    std::shared_ptr<img::Image4K_RGB> image_ = std::make_shared<img::Image4K_RGB>();
 
      ProducerConsumer(std::string const &shm_name)
          : shm_(shm_name, sizeof(img::Image4K_RGB))

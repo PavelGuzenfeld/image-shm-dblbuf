@@ -11,4 +11,5 @@
   <depend>exception-rt</depend>
   <depend>flat-type</depend>
   <depend>single-task-runner</depend>
+  <depend>shm</depend>
 </package>
