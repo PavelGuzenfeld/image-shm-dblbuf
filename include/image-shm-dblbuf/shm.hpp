@@ -1,87 +1,124 @@
 #pragma once
 #include "double-buffer-swapper/swapper.hpp"
-#include "image-shm-dblbuf/image.hpp"
+#include "flat-type/flat.hpp"
 #include "shm/semaphore.hpp"
 #include "shm/shm.hpp"
 #include "single-task-runner/runner.hpp"
+#include <atomic>
+#include <cassert>
 #include <fmt/core.h>
 
-using Image = img::Image4K_RGB;
-
-struct ReturnImage
+namespace image_shm
 {
-    Image **img_ptr_ = nullptr;
-
-    inline uint64_t timestamp() const noexcept
+    inline void default_logger(std::string_view msg) noexcept
     {
-        return (*img_ptr_)->timestamp;
-    }
-    inline uint64_t frame_number() const noexcept
-    {
-        return (*img_ptr_)->frame_number;
-    }
-};
-
-void log(std::string_view msg) noexcept
-{
-    fmt::print("{}", msg);
-}
-
-struct DoubleBufferShem
-{
-    shm::Shm shm_;
-    shm::Semaphore sem_;
-    std::unique_ptr<Image> pre_allocated_;
-    std::unique_ptr<DoubleBufferSwapper<Image>> swapper_;
-    std::unique_ptr<run::SingleTaskRunner> runner_;
-    Image *img_ptr_;
-    ReturnImage return_image_;
-
-    DoubleBufferShem(std::string const &shm_name)
-        : shm_(shm::path(shm_name), sizeof(Image)),
-          sem_(shm_name + "_sem", 1),
-          pre_allocated_(std::make_unique<Image>()),
-          img_ptr_(nullptr),
-          return_image_{&img_ptr_}
-    {
-        swapper_ = std::make_unique<DoubleBufferSwapper<Image>>(&img_ptr_, pre_allocated_.get());
-        runner_ = std::make_unique<run::SingleTaskRunner>([&]
-                                                          {
-                                                            sem_.wait();
-                                                            swapper_->swap();
-                                                            sem_.post(); },
-                                                          [&](std::string_view msg)
-                                                          { log(msg); });
-        runner_->async_start();
-        swapper_->set_active(get_shm());
+        fmt::print("{}", msg);
     }
 
-    ~DoubleBufferShem()
+    template <FlatType T>
+    class Snapshot
     {
-        runner_->async_stop();
-        sem_.destroy();
-        return_image_.img_ptr_ = nullptr;
-    }
+    public:
+        explicit Snapshot(std::atomic<T *> *ptr) noexcept : ptr_(ptr) {}
 
-    void store(Image const &image)
+        T const &operator*() const noexcept
+        {
+            auto *p = ptr_->load(std::memory_order_acquire);
+            assert(p && "snapshot data is null");
+            return *p;
+        }
+
+        T const *operator->() const noexcept
+        {
+            auto *p = ptr_->load(std::memory_order_acquire);
+            assert(p && "snapshot data is null");
+            return p;
+        }
+
+        T *get() const noexcept
+        {
+            return ptr_->load(std::memory_order_acquire);
+        }
+
+    private:
+        std::atomic<T *> *ptr_;
+    };
+
+    template <FlatType T>
+    class DoubleBufferShm
     {
-        sem_.wait();
-        *static_cast<Image *>(shm_.get()) = image;
-        sem_.post();
-    }
+    public:
+        explicit DoubleBufferShm(std::string const &shm_name,
+                                 void (*log)(std::string_view) = default_logger)
+            : shm_(shm::path(shm_name), sizeof(T)),
+              sem_(shm_name + "_sem", 1),
+              pre_allocated_(std::make_unique<T>()),
+              swapper_ptr_(nullptr),
+              published_ptr_(nullptr)
+        {
+            swapper_ = std::make_unique<DoubleBufferSwapper<T>>(&swapper_ptr_, pre_allocated_.get());
+            runner_ = std::make_unique<run::SingleTaskRunner>(
+                [this]
+                {
+                    sem_.wait();
+                    swapper_->swap();
+                    published_ptr_.store(swapper_ptr_, std::memory_order_release);
+                    sem_.post();
+                },
+                [log](std::string_view msg)
+                { log(msg); });
+            runner_->async_start();
+            swapper_->set_active(get_shm());
+            published_ptr_.store(swapper_ptr_, std::memory_order_release);
+        }
 
-    ReturnImage load()
-    {
-        swapper_->stage(get_shm());
-        runner_->trigger_once();
-        return return_image_;
-    }
+        ~DoubleBufferShm()
+        {
+            runner_->async_stop();
+            sem_.destroy();
+        }
 
-    Image *get_shm() const noexcept
-    {
-        auto ret_ptr = static_cast<Image *>(shm_.get());
-        assert(ret_ptr && "shared memory data is null");
-        return ret_ptr;
-    }
-};
+        DoubleBufferShm(DoubleBufferShm const &) = delete;
+        DoubleBufferShm &operator=(DoubleBufferShm const &) = delete;
+        DoubleBufferShm(DoubleBufferShm &&) = delete;
+        DoubleBufferShm &operator=(DoubleBufferShm &&) = delete;
 
+        void store(T const &data)
+        {
+            sem_.wait();
+            *get_shm() = data;
+            sem_.post();
+        }
+
+        Snapshot<T> load()
+        {
+            swapper_->stage(get_shm());
+            runner_->trigger_once();
+            return Snapshot<T>{&published_ptr_};
+        }
+
+        void wait()
+        {
+            runner_->wait_for_all_tasks();
+        }
+
+        void const *shm_addr() const noexcept { return shm_.get(); }
+        void const *pre_allocated_addr() const noexcept { return pre_allocated_.get(); }
+
+    private:
+        T *get_shm() const noexcept
+        {
+            auto *p = static_cast<T *>(shm_.get());
+            assert(p && "shared memory data is null");
+            return p;
+        }
+
+        shm::Shm shm_;
+        shm::Semaphore sem_;
+        std::unique_ptr<T> pre_allocated_;
+        std::unique_ptr<DoubleBufferSwapper<T>> swapper_;
+        std::unique_ptr<run::SingleTaskRunner> runner_;
+        T *swapper_ptr_;
+        std::atomic<T *> published_ptr_;
+    };
+} // namespace image_shm
