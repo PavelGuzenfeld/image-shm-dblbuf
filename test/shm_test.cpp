@@ -1,55 +1,84 @@
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include <doctest/doctest.h>
 #include "image-shm-dblbuf/shm.hpp"
-#include <cassert>
 #include <fmt/core.h>
-#include <thread> // std::this_thread::sleep_for
+#include <thread>
 
-void test_result_address_switch()
+using Image = img::Image4K_RGB;
+using ImageShm = image_shm::DoubleBufferShm<Image>;
+
+TEST_CASE("store and load round-trip")
 {
-    auto const shm_name = "test";
-    auto shm = DoubleBufferShem(shm_name);
+    ImageShm shm("doctest_dblbuf");
 
-    assert(shm.shm_.get() != nullptr);
+    REQUIRE(shm.shm_addr() != nullptr);
 
-    auto img_ptr = std::make_unique<Image>();
-    img_ptr->timestamp = 123456789;
-    img_ptr->frame_number = 123;
-    std::fill(img_ptr->data.begin(), img_ptr->data.end(), 0x42);
+    auto img = std::make_unique<Image>();
+    img->timestamp = 123456789;
+    img->frame_number = 123;
+    std::fill(img->data.begin(), img->data.end(), 0x42);
 
-    shm.store(*img_ptr);
-    assert(static_cast<Image *>(shm.shm_.get())->timestamp == 123456789);
-    assert(static_cast<Image *>(shm.shm_.get())->frame_number == 123);
-    assert(std::all_of(static_cast<Image *>(shm.shm_.get())->data.begin(),
-                       static_cast<Image *>(shm.shm_.get())->data.end(),
-                       [](auto const &v)
-                       { return v == 0x42; }));
+    shm.store(*img);
 
-    fmt::print("Shm memory address: {}\n", static_cast<void *>(shm.shm_.get()));
-    fmt::print("Pre-allocated memory address: {}\n", static_cast<void *>(shm.pre_allocated_.get()));
-    fmt::print("Image memory address: {}\n", static_cast<void *>(img_ptr.get()));
+    auto snapshot = shm.load();
+    shm.wait();
 
-    auto result = shm.load();
-    fmt::print("Image memory address: {}, Memory address: {}\n", static_cast<void *>(result.img_ptr_), static_cast<void *>(*result.img_ptr_));
-    assert(*result.img_ptr_ == shm.shm_.get() && "Image pointer should point to the shared memory");
-    assert((*result.img_ptr_)->timestamp == 123456789);
-    assert((*result.img_ptr_)->frame_number == 123);
-    assert(std::all_of((*result.img_ptr_)->data.begin(),
-                       (*result.img_ptr_)->data.end(),
-                       [](auto const &v)
-                       { return v == 0x42; }));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    fmt::print("Image memory address: {}, Memory address: {}\n", static_cast<void *>(result.img_ptr_), static_cast<void *>(*result.img_ptr_));
-    assert(*result.img_ptr_ == shm.pre_allocated_.get() && "Image pointer should point to the pre-allocated memory");
-    assert((*result.img_ptr_)->timestamp == 123456789);
-    assert((*result.img_ptr_)->frame_number == 123);
-    assert(std::all_of((*result.img_ptr_)->data.begin(),
-                       (*result.img_ptr_)->data.end(),
-                       [](auto const &v)
-                       { return v == 0x42; }));
+    REQUIRE(snapshot->timestamp == 123456789);
+    REQUIRE(snapshot->frame_number == 123);
+    REQUIRE(std::all_of(snapshot->data.begin(), snapshot->data.end(),
+                        [](auto v) { return v == 0x42; }));
 }
 
-int main()
+TEST_CASE("snapshot transitions from shm to pre-allocated copy")
 {
-    test_result_address_switch();
-    fmt::print("All tests passed!\n");
-    return 0;
+    ImageShm shm("doctest_transition");
+
+    auto img = std::make_unique<Image>();
+    img->timestamp = 999;
+    img->frame_number = 7;
+    std::fill(img->data.begin(), img->data.end(), 0xAB);
+
+    shm.store(*img);
+
+    auto snapshot = shm.load();
+
+    // Before swap completes, snapshot points to shm
+    REQUIRE(snapshot.get() == shm.shm_addr());
+
+    // Wait for swap to complete
+    shm.wait();
+
+    // After swap, snapshot points to pre-allocated copy
+    REQUIRE(snapshot.get() == shm.pre_allocated_addr());
+
+    // Data is correct regardless of which buffer
+    REQUIRE(snapshot->timestamp == 999);
+    REQUIRE(snapshot->frame_number == 7);
+    REQUIRE(std::all_of(snapshot->data.begin(), snapshot->data.end(),
+                        [](auto v) { return v == 0xAB; }));
+}
+
+TEST_CASE("multiple load cycles")
+{
+    ImageShm shm("doctest_multi_load");
+
+    auto img = std::make_unique<Image>();
+    img->timestamp = 1;
+    img->frame_number = 1;
+    std::fill(img->data.begin(), img->data.end(), 0x01);
+
+    shm.store(*img);
+    auto s1 = shm.load();
+    shm.wait();
+    REQUIRE(s1->timestamp == 1);
+
+    img->timestamp = 2;
+    img->frame_number = 2;
+    std::fill(img->data.begin(), img->data.end(), 0x02);
+
+    shm.store(*img);
+    auto s2 = shm.load();
+    shm.wait();
+    REQUIRE(s2->timestamp == 2);
+    REQUIRE(s2->frame_number == 2);
 }
