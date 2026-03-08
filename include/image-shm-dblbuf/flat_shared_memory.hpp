@@ -30,4 +30,4 @@ namespace flat_shm
     private:
         shm::Shm impl_;
     };
-} // namespace flat_shem
+} // namespace flat_shm
