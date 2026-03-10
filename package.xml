@@ -6,7 +6,6 @@
   <maintainer email="me@pavelguzenfeld.com">Pavel Guzenfeld</maintainer>
   <license>MIT</license>
 
-  <build_depend>cmake-library</build_depend>
   <depend>double-buffer-swapper</depend>
   <depend>exception-rt</depend>
   <depend>flat-type</depend>
