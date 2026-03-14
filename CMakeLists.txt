@@ -7,6 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Build utilities
+function(set_debug_options target)
+    target_compile_options(${target} PRIVATE -g -O0)
+    target_compile_definitions(${target} PRIVATE DEBUG)
+endfunction()
+
 function(enable_sanitizers target)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         target_compile_options(${target} PRIVATE -fsanitize=address,undefined,signed-integer-overflow,null,leak)
