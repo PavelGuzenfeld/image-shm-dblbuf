@@ -1,5 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
+#include "image-shm-dblbuf/image.hpp"
 #include "image-shm-dblbuf/shm.hpp"
 #include <fmt/core.h>
 #include <thread>

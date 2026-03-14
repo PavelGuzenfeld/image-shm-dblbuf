@@ -1,3 +1,4 @@
+#include "image-shm-dblbuf/image.hpp"
 #include "image-shm-dblbuf/shm.hpp"
 #include "nanobind/nanobind.h"
 #include "nanobind/ndarray.h"

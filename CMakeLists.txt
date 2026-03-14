@@ -57,6 +57,7 @@ target_link_libraries(image_shm_dblbuff
         fmt
         single-task-runner::single-task-runner
         double-buffer-swapper::double-buffer-swapper
+        flat-type::flat-type
         exception-rt::exception-rt
         shm::shm
 )
